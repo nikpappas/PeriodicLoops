@@ -39,11 +39,9 @@ constexpr auto PLUGIN_OTHER_XML_TAG = "dstatePlugin"sv;
 
 using namespace ::plop::p_loops;
 
-p_loops::p_loops() :
-		  AudioProcessor( p_loops::get_midifx_bus_layout() )
-{
-	notes.add( { 36, 4.0f, 2.0f } );
-	notes.add( { 46, 1.0f, 0.5f } );
+p_loops::p_loops() : AudioProcessor( p_loops::get_midifx_bus_layout() ) {
+	notes.add( { 60, 4.0f, 2.0f } );
+	notes.add( { 72, 1.0f, 0.5f } );
 	pl_info( "Plugin Started" );
 }
 
@@ -94,29 +92,34 @@ void p_loops::processBlock( AudioBuffer<float> &buffer, MidiBuffer &midi ) {
 	}
 
 	// Get BPM from host transport if available
-	if ( auto *playHead = getPlayHead() ) {
+	if ( auto *playH = getPlayHead() ) {
 		juce::AudioPlayHead::CurrentPositionInfo posInfo;
-		if ( playHead->getCurrentPosition( posInfo ) ) {
+		if ( playH->getCurrentPosition( posInfo ) ) {
 			bpm = static_cast<float>( posInfo.bpm );
 		}
 	}
 
-	const float samplesPerBeat = static_cast<float>( mSampleRate ) * 60.0f / bpm;
-	const float blockStartBeat = static_cast<float>( time ) / samplesPerBeat;
-	const float blockEndBeat   = static_cast<float>( time + numSamples ) / samplesPerBeat;
+	const float   samplesPerBeat = static_cast<float>( mSampleRate ) * 60.0f / bpm;
+	const int64_t timeSnapshot   = time.load();
+	const float   blockStartBeat = static_cast<float>( timeSnapshot ) / samplesPerBeat;
+	const float   blockEndBeat   = static_cast<float>( timeSnapshot + numSamples ) / samplesPerBeat;
 
 	// NoteOff pass — must come before NoteOn so same-sample ordering is correct
 	for ( const auto &note : notes ) {
-		if ( note.period <= 0.0f ) continue;
+		if ( note.period <= 0.0f )
+			continue;
 
 		auto n = static_cast<int>( std::ceil( ( blockStartBeat - note.duration ) / note.period - 1e-6f ) );
-		if ( n < 0 ) n = 0;
+		if ( n < 0 )
+			n = 0;
 
 		while ( true ) {
 			const float offBeat = static_cast<float>( n ) * note.period + note.duration;
-			if ( offBeat >= blockEndBeat ) break;
+			if ( offBeat >= blockEndBeat )
+				break;
 			if ( offBeat >= blockStartBeat ) {
-				const int offset = std::clamp( static_cast<int>( ( offBeat - blockStartBeat ) * samplesPerBeat ), 0, numSamples - 1 );
+				const int offset =
+				  std::clamp( static_cast<int>( ( offBeat - blockStartBeat ) * samplesPerBeat ), 0, numSamples - 1 );
 				midi.addEvent( MidiMessage::noteOff( 1, note.pitch ), offset );
 			}
 			++n;
@@ -125,16 +128,19 @@ void p_loops::processBlock( AudioBuffer<float> &buffer, MidiBuffer &midi ) {
 
 	// NoteOn pass
 	for ( const auto &note : notes ) {
-		if ( note.period <= 0.0f ) continue;
+		if ( note.period <= 0.0f )
+			continue;
 
 		auto n = static_cast<int>( std::ceil( blockStartBeat / note.period - 1e-6f ) );
-		if ( n < 0 ) n = 0;
+		if ( n < 0 )
+			n = 0;
 
 		while ( true ) {
 			const float onBeat = static_cast<float>( n ) * note.period;
-			if ( onBeat >= blockEndBeat ) break;
+			if ( onBeat >= blockEndBeat )
+				break;
 			const int offset = std::clamp( static_cast<int>( ( onBeat - blockStartBeat ) * samplesPerBeat ), 0, numSamples - 1 );
-			midi.addEvent( MidiMessage::noteOn( 1, note.pitch, (uint8_t) 100 ), offset );
+			midi.addEvent( MidiMessage::noteOn( 1, note.pitch, (uint8_t)100 ), offset );
 			++n;
 		}
 	}

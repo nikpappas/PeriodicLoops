@@ -1,6 +1,7 @@
 #ifndef PLOP_SRC_PROCSSOR_PERIODIC_LOOPS_HPP
 #define PLOP_SRC_PROCSSOR_PERIODIC_LOOPS_HPP
 
+#include <atomic>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_core/juce_core.h>
 
@@ -92,8 +93,20 @@ namespace plop::p_loops {
 
 		static ::juce::File log_file();
 
+		int64_t getTime() const {
+			return time.load();
+		}
+
+		float getBpm() const {
+			return bpm;
+		}
+
+		const ::juce::SortedSet<PeriodicNote> &getNotes() const {
+			return notes;
+		}
+
 	 private:
-		int64_t                         time       = 0;
+		std::atomic<int64_t>            time{ 0 };
 		double                          mSampleRate = 44100.0;
 		float                           bpm         = 120.0f;
 		::juce::SortedSet<PeriodicNote> notes;
