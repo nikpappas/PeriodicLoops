@@ -171,6 +171,15 @@ void p_loops::removeNote( int index ) {
 	m_ui_notes.erase( m_ui_notes.begin() + index );
 }
 
+void p_loops::updateNote( int index, const PeriodicNote &note ) {
+	if ( index < 0 || index >= static_cast<int>( m_ui_notes.size() ) ) return;
+	swapBuffer( [index, &note]( NoteBuffer &buf ) {
+		if ( index < buf.count )
+			buf.notes[ index ] = note;
+	} );
+	m_ui_notes[ index ] = note;
+}
+
 void p_loops::reset() {
 	// Use this method as the place to clear any delay lines, buffers, etc, as it
 	// means there's been a break in the audio's continuity.

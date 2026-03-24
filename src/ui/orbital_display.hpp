@@ -11,9 +11,9 @@ namespace plop::ui {
 	class OrbitalDisplay : public ::juce::Component {
 	 public:
 		struct VoiceState {
-			float phase;        // [0, 1) — position around the circle
-			bool  triggered;    // true on the frame a lap completes
-			float trackRadius;  // normalised [0, 1] — maps to pixel radius in paint()
+			float phase;       // [0, 1) — position around the circle
+			bool  triggered;   // true on the frame a lap completes
+			float trackRadius; // normalised [0, 1] — maps to pixel radius in paint()
 		};
 
 		void setVoices( std::vector<VoiceState> voices ) {
@@ -32,23 +32,15 @@ namespace plop::ui {
 
 		void paint( ::juce::Graphics &g ) override {
 			g.fillAll( ::juce::Colour( 0xff1a1a2e ) );
-			if ( m_voices.empty() ) return;
+			if ( m_voices.empty() )
+				return;
 
 			const float cx   = getWidth() * 0.5f;
 			const float cy   = getHeight() * 0.5f;
 			const float maxR = std::min( cx, cy ) * 0.9f;
 			const float minR = maxR * k_min_radius_ratio;
 
-			// Draw a ring for every unique track radius
-			std::vector<float> rings;
-			for ( const auto &v : m_voices ) {
-				const float r = minR + v.trackRadius * ( maxR - minR );
-				if ( std::none_of( rings.begin(), rings.end(), [r]( float x ) { return std::abs( x - r ) < 1.0f; } ) )
-					rings.push_back( r );
-			}
 			g.setColour( ::juce::Colour( 0xff2a2a44 ) );
-			for ( float r : rings )
-				g.drawEllipse( cx - r, cy - r, r * 2.0f, r * 2.0f, 1.0f );
 
 			// Draw dots
 			for ( int i = 0; i < static_cast<int>( m_voices.size() ); ++i ) {
@@ -64,14 +56,15 @@ namespace plop::ui {
 				g.setColour( colour );
 				g.fillEllipse( dotX - dotR, dotY - dotR, dotR * 2.0f, dotR * 2.0f );
 
-				if ( mTrigger[ i ] > 0 ) --mTrigger[ i ];
+				if ( mTrigger[ i ] > 0 )
+					--mTrigger[ i ];
 			}
 		}
 
 	 private:
-		static constexpr int   k_flash_frames    = 10;
-		static constexpr float k_dot_r_normal    = 5.0f;
-		static constexpr float k_dot_r_peak      = 14.0f;
+		static constexpr int   k_flash_frames     = 10;
+		static constexpr float k_dot_r_normal     = 5.0f;
+		static constexpr float k_dot_r_peak       = 14.0f;
 		static constexpr float k_min_radius_ratio = 0.15f; // innermost ring as fraction of maxR
 
 		::std::vector<VoiceState>     m_voices;

@@ -15,6 +15,19 @@ namespace plop::ui {
 		std::function<void( int index, ::juce::Rectangle<int> screenBounds )> onColourSwatchClicked;
 		std::function<void( int index )>                                       onRemoveNote;
 		std::function<void()>                                                  onAddNote;
+		/// Fired when any editable field changes. The full updated note is provided.
+		std::function<void( int index, PeriodicNote note )>                    onNoteChanged;
+
+		NoteListPanel() {
+			m_editor.setJustification( ::juce::Justification::centred );
+			m_editor.setColour( ::juce::TextEditor::backgroundColourId, ::juce::Colour( 0xff2a2a44 ) );
+			m_editor.setColour( ::juce::TextEditor::textColourId, ::juce::Colours::white );
+			m_editor.setColour( ::juce::TextEditor::outlineColourId, ::juce::Colour( 0xff4fc3f7 ) );
+			m_editor.onReturnKey = [this] { commitEdit(); };
+			m_editor.onEscapeKey = [this] { cancelEdit(); };
+			m_editor.onFocusLost = [this] { commitEdit(); };
+			addChildComponent( m_editor );
+		}
 
 		void setNotes( std::vector<PeriodicNote> notes ) {
 			m_notes = std::move( notes );
@@ -25,7 +38,6 @@ namespace plop::ui {
 		}
 
 		void paint( ::juce::Graphics &g ) override {
-
 			g.fillAll( ::juce::Colour( 0xff12121f ) );
 
 			// Header
@@ -39,13 +51,13 @@ namespace plop::ui {
 			g.setColour( ::juce::Colour( 0xff888899 ) );
 			g.setFont( 11.0f );
 			const int y_cols = header_h + 4;
-			g.drawText( "Colour", padding, y_cols, swatch_w, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Pitch", padding + 30, y_cols, 40, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Period", padding + 75, y_cols, 55, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Offset", padding + 135, y_cols, 65, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Colour", padding,       y_cols, swatch_w, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Pitch",  padding + 30,  y_cols, 40,       20, ::juce::Justification::centredLeft );
+			g.drawText( "Period", padding + 75,  y_cols, 55,       20, ::juce::Justification::centredLeft );
+			g.drawText( "Offset", padding + 135, y_cols, 65,       20, ::juce::Justification::centredLeft );
 
 			// Divider
-			const int list_top = y_cols + 22;
+			const int list_top = listTop();
 			g.setColour( ::juce::Colour( 0xff333344 ) );
 			g.drawHorizontalLine( list_top - 2, 0.0f, static_cast<float>( getWidth() ) );
 
@@ -61,17 +73,18 @@ namespace plop::ui {
 				}
 
 				// Colour swatch
-				const auto swatch_bounds = swatchRect( i, list_top );
-				const auto colour        = colourFor( i );
+				const auto sb     = swatchRect( i, list_top );
+				const auto colour = colourFor( i );
 				g.setColour( colour );
-				g.fillRoundedRectangle( swatch_bounds.toFloat(), 3.0f );
+				g.fillRoundedRectangle( sb.toFloat(), 3.0f );
 				g.setColour( colour.brighter( 0.3f ) );
-				g.drawRoundedRectangle( swatch_bounds.toFloat(), 3.0f, 1.0f );
+				g.drawRoundedRectangle( sb.toFloat(), 3.0f, 1.0f );
 
+				// Editable fields — highlight on hover hint via brighter text
 				g.setColour( ::juce::Colours::white );
-				g.drawText( ::juce::String( note.pitch ),             padding + 30,  y, 40, row_h, ::juce::Justification::centredLeft );
-				g.drawText( ::juce::String( note.period, 2 ) + " b",  padding + 75,  y, 55, row_h, ::juce::Justification::centredLeft );
-				g.drawText( ::juce::String( note.offset, 2 ) + " b",  padding + 135, y, 65, row_h, ::juce::Justification::centredLeft );
+				drawEditableCell( g, ::juce::String( note.pitch ),            pitchRect( i, list_top ),  i == m_editing_index && m_editing_field == Field::Pitch );
+				drawEditableCell( g, ::juce::String( note.period, 2 ) + " b", periodRect( i, list_top ), i == m_editing_index && m_editing_field == Field::Period );
+				drawEditableCell( g, ::juce::String( note.offset, 2 ) + " b", offsetRect( i, list_top ), i == m_editing_index && m_editing_field == Field::Offset );
 
 				// Remove button
 				const auto rb = removeRect( i, list_top );
@@ -100,6 +113,18 @@ namespace plop::ui {
 					onColourSwatchClicked( i, localAreaToGlobal( swatchRect( i, list_top ) ) );
 					return;
 				}
+				if ( pitchRect( i, list_top ).contains( e.getPosition() ) ) {
+					startEdit( i, Field::Pitch, list_top );
+					return;
+				}
+				if ( periodRect( i, list_top ).contains( e.getPosition() ) ) {
+					startEdit( i, Field::Period, list_top );
+					return;
+				}
+				if ( offsetRect( i, list_top ).contains( e.getPosition() ) ) {
+					startEdit( i, Field::Offset, list_top );
+					return;
+				}
 				if ( onRemoveNote && removeRect( i, list_top ).contains( e.getPosition() ) ) {
 					onRemoveNote( i );
 					return;
@@ -113,6 +138,8 @@ namespace plop::ui {
 		}
 
 	 private:
+		enum class Field { None, Pitch, Period, Offset };
+
 		static constexpr int swatch_w = 18;
 		static constexpr int swatch_h = 14;
 		static constexpr int padding  = 8;
@@ -121,25 +148,91 @@ namespace plop::ui {
 
 		std::vector<PeriodicNote>   m_notes;
 		std::vector<::juce::Colour> m_colours;
+		::juce::TextEditor          m_editor;
+		int                         m_editing_index = -1;
+		Field                       m_editing_field = Field::None;
 
-		int listTop() const {
-			return header_h + 4 + 22;
+		int listTop() const { return header_h + 4 + 22; }
+
+		::juce::Rectangle<int> swatchRect( int i, int lt ) const {
+			return { padding, lt + i * row_h + ( row_h - swatch_h ) / 2, swatch_w, swatch_h };
 		}
-
-		::juce::Rectangle<int> swatchRect( int i, int list_top ) const {
-			const int y = list_top + i * row_h + ( row_h - swatch_h ) / 2;
-			return { padding, y, swatch_w, swatch_h };
+		::juce::Rectangle<int> pitchRect( int i, int lt ) const {
+			return { padding + 30, lt + i * row_h, 40, row_h };
 		}
-
-		::juce::Rectangle<int> removeRect( int i, int list_top ) const {
-			const int y = list_top + i * row_h + ( row_h - 16 ) / 2;
-			return { getWidth() - padding - 16, y, 16, 16 };
+		::juce::Rectangle<int> periodRect( int i, int lt ) const {
+			return { padding + 75, lt + i * row_h, 55, row_h };
+		}
+		::juce::Rectangle<int> offsetRect( int i, int lt ) const {
+			return { padding + 135, lt + i * row_h, 65, row_h };
+		}
+		::juce::Rectangle<int> removeRect( int i, int lt ) const {
+			return { getWidth() - padding - 16, lt + i * row_h + ( row_h - 16 ) / 2, 16, 16 };
 		}
 
 		::juce::Colour colourFor( int i ) const {
-			if ( i < static_cast<int>( m_colours.size() ) )
-				return m_colours[ i ];
-			return ::juce::Colours::grey;
+			return i < static_cast<int>( m_colours.size() ) ? m_colours[ i ] : ::juce::Colours::grey;
+		}
+
+		void drawEditableCell( ::juce::Graphics &g, const ::juce::String &text,
+		                       ::juce::Rectangle<int> bounds, bool isActive ) const {
+			if ( isActive ) {
+				g.setColour( ::juce::Colour( 0xff2a2a44 ) );
+				g.fillRect( bounds );
+			}
+			g.setColour( ::juce::Colours::white );
+			g.drawText( text, bounds, ::juce::Justification::centredLeft );
+		}
+
+		void startEdit( int i, Field field, int list_top ) {
+			m_editing_index = i;
+			m_editing_field = field;
+
+			::juce::Rectangle<int> bounds;
+			::juce::String         text;
+
+			if ( field == Field::Pitch ) {
+				bounds = pitchRect( i, list_top );
+				text   = ::juce::String( m_notes[ i ].pitch );
+				m_editor.setInputRestrictions( 3, "0123456789" );
+			} else if ( field == Field::Period ) {
+				bounds = periodRect( i, list_top );
+				text   = ::juce::String( m_notes[ i ].period );
+				m_editor.setInputRestrictions( 8, "0123456789." );
+			} else {
+				bounds = offsetRect( i, list_top );
+				text   = ::juce::String( m_notes[ i ].offset );
+				m_editor.setInputRestrictions( 8, "0123456789." );
+			}
+
+			m_editor.setBounds( bounds.reduced( 2 ) );
+			m_editor.setText( text, false );
+			m_editor.setVisible( true );
+			m_editor.grabKeyboardFocus();
+			m_editor.selectAll();
+		}
+
+		void commitEdit() {
+			if ( m_editing_index < 0 || m_editing_field == Field::None ) return;
+
+			PeriodicNote updated = m_notes[ m_editing_index ];
+
+			if ( m_editing_field == Field::Pitch ) {
+				updated.pitch = ::juce::jlimit( 0, 127, m_editor.getText().getIntValue() );
+			} else if ( m_editing_field == Field::Period ) {
+				updated.period = ::juce::jmax( 0.01f, m_editor.getText().getFloatValue() );
+			} else {
+				updated.offset = ::juce::jmax( 0.0f, m_editor.getText().getFloatValue() );
+			}
+
+			if ( onNoteChanged ) onNoteChanged( m_editing_index, updated );
+			cancelEdit();
+		}
+
+		void cancelEdit() {
+			m_editor.setVisible( false );
+			m_editing_index = -1;
+			m_editing_field = Field::None;
 		}
 	};
 

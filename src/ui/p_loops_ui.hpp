@@ -127,6 +127,10 @@ namespace plop::ui {
 			m_note_colours.push_back( nextPaletteColour() );
 		};
 
+		m_note_list_panel.onNoteChanged = [this]( int index, PeriodicNote note ) {
+			m_plugin_instance_ref.updateNote( index, note );
+		};
+
 		m_note_list_panel.onRemoveNote = [this]( int index ) {
 			m_plugin_instance_ref.removeNote( index );
 			if ( index < static_cast<int>( m_note_colours.size() ) )

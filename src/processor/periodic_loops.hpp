@@ -114,6 +114,9 @@ namespace plop::p_loops {
 		/// Remove the note at the given index. Must be called from the message thread only.
 		void removeNote( int index );
 
+		/// Replace the note at the given index. Must be called from the message thread only.
+		void updateNote( int index, const PeriodicNote &note );
+
 	 private:
 		// ---- Audio-safe double buffer -----------------------------------------
 		// The UI thread writes to the inactive buffer then atomically promotes it.
