@@ -2,6 +2,8 @@
 #define PLOP_SRC_PROCSSOR_PERIODIC_LOOPS_HPP
 
 #include <atomic>
+#include <vector>
+
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_core/juce_core.h>
 
@@ -101,17 +103,48 @@ namespace plop::p_loops {
 			return bpm;
 		}
 
-		const ::juce::SortedSet<PeriodicNote> &getNotes() const {
-			return notes;
+		/// Returns the UI-thread view of the note list. Always called from the message thread.
+		const ::std::vector<PeriodicNote> &getNotes() const {
+			return m_ui_notes;
 		}
 
-	 private:
-		std::atomic<int64_t>            time{ 0 };
-		double                          mSampleRate = 44100.0;
-		float                           bpm         = 120.0f;
-		::juce::SortedSet<PeriodicNote> notes;
+		/// Add a note. Must be called from the message thread only.
+		void addNote( const PeriodicNote &note );
 
-		void inner_process_block( ::juce::AudioPlayHead *, ::juce::AudioBuffer<float> &, ::juce::MidiBuffer & );
+		/// Remove the note at the given index. Must be called from the message thread only.
+		void removeNote( int index );
+
+	 private:
+		// ---- Audio-safe double buffer -----------------------------------------
+		// The UI thread writes to the inactive buffer then atomically promotes it.
+		// The audio thread only reads from the active buffer — no locks, no allocs.
+		static constexpr int MAX_NOTES = 32;
+
+		struct NoteBuffer {
+			std::array<PeriodicNote, MAX_NOTES> notes{};
+			int                                 count = 0;
+		};
+
+		NoteBuffer       m_note_buf[2];
+		std::atomic<int> m_active_buf{ 0 };
+
+		/// UI-thread mirror — kept in sync by addNote / removeNote.
+		::std::vector<PeriodicNote> m_ui_notes;
+
+		/// Swap helper: copy active → inactive, apply fn, then promote inactive.
+		template<typename Fn>
+		void swapBuffer( Fn &&fn )
+		{
+			const int inactive    = 1 - m_active_buf.load( std::memory_order_relaxed );
+			m_note_buf[ inactive ] = m_note_buf[ m_active_buf.load( std::memory_order_acquire ) ];
+			fn( m_note_buf[ inactive ] );
+			m_active_buf.store( inactive, std::memory_order_release );
+		}
+		// -----------------------------------------------------------------------
+
+		std::atomic<int64_t> time{ 0 };
+		double               mSampleRate = 44100.0;
+		float                bpm         = 120.0f;
 
 		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR( p_loops )
 	};

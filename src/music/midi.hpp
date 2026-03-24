@@ -7,18 +7,19 @@ struct PeriodicNote {
 	/// @brief  in beats
 	float period;
 	/// @brief  in beats
+   	float offset;
+	/// @brief  in beats
+
 	float duration;
+	/// @brief  [0,15]
+	int channel;
 };
 
-inline bool
-operator<( const PeriodicNote &a, const PeriodicNote &b )
-{
+inline bool operator<( const PeriodicNote &a, const PeriodicNote &b ) {
 	return a.pitch < b.pitch;
 }
 
-inline bool
-operator==( const PeriodicNote &a, const PeriodicNote &b )
-{
+inline bool operator==( const PeriodicNote &a, const PeriodicNote &b ) {
 	return a.pitch == b.pitch && a.period == b.period && a.duration == b.duration;
 }
 

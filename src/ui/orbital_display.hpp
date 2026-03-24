@@ -11,58 +11,72 @@ namespace plop::ui {
 	class OrbitalDisplay : public ::juce::Component {
 	 public:
 		struct VoiceState {
-			float phase;     // [0, 1) — position around the circle
-			bool  triggered; // true on the frame a lap completes
+			float phase;        // [0, 1) — position around the circle
+			bool  triggered;    // true on the frame a lap completes
+			float trackRadius;  // normalised [0, 1] — maps to pixel radius in paint()
 		};
 
 		void setVoices( std::vector<VoiceState> voices ) {
-			m_flash.resize( voices.size(), 0 );
+			mTrigger.resize( voices.size(), 0 );
 			for ( int i = 0; i < static_cast<int>( voices.size() ); ++i ) {
 				if ( voices[ i ].triggered ) {
-					m_flash[ i ] = k_flash_frames;
+					mTrigger[ i ] = k_flash_frames;
 				}
 			}
 			m_voices = std::move( voices );
 		}
 
+		void setColours( const ::std::vector<::juce::Colour> &colors ) {
+			mColours = colors;
+		}
+
 		void paint( ::juce::Graphics &g ) override {
 			g.fillAll( ::juce::Colour( 0xff1a1a2e ) );
+			if ( m_voices.empty() ) return;
 
-			if ( m_voices.empty() )
-				return;
+			const float cx   = getWidth() * 0.5f;
+			const float cy   = getHeight() * 0.5f;
+			const float maxR = std::min( cx, cy ) * 0.9f;
+			const float minR = maxR * k_min_radius_ratio;
 
-			const int   n     = static_cast<int>( m_voices.size() );
-			const float cellW = static_cast<float>( getWidth() );
-			const float cellH = static_cast<float>( getHeight() );
+			// Draw a ring for every unique track radius
+			std::vector<float> rings;
+			for ( const auto &v : m_voices ) {
+				const float r = minR + v.trackRadius * ( maxR - minR );
+				if ( std::none_of( rings.begin(), rings.end(), [r]( float x ) { return std::abs( x - r ) < 1.0f; } ) )
+					rings.push_back( r );
+			}
+			g.setColour( ::juce::Colour( 0xff2a2a44 ) );
+			for ( float r : rings )
+				g.drawEllipse( cx - r, cy - r, r * 2.0f, r * 2.0f, 1.0f );
 
-			for ( int i = 0; i < n; ++i ) {
-				const auto &voice = m_voices[ i ];
+			// Draw dots
+			for ( int i = 0; i < static_cast<int>( m_voices.size() ); ++i ) {
+				const auto &voice  = m_voices[ i ];
+				const float r      = minR + voice.trackRadius * ( maxR - minR );
+				const float angle  = voice.phase * ::juce::MathConstants<float>::twoPi;
+				const float dotX   = cx + r * std::sin( angle );
+				const float dotY   = cy - r * std::cos( angle );
+				const float t      = static_cast<float>( mTrigger[ i ] ) / k_flash_frames;
+				const float dotR   = k_dot_r_normal + ( k_dot_r_peak - k_dot_r_normal ) * t;
+				const auto  colour = i < static_cast<int>( mColours.size() ) ? mColours[ i ] : ::juce::Colour( 0xffaaaacc );
 
-				const float cx     = cellW * 0.5f;
-				const float cy     = cellH * 0.5f;
-				const float radius = std::min( cellW, cellH ) * 0.35f;
-
-				// Dot — travels clockwise from 12 o'clock
-				const float angle = voice.phase * ::juce::MathConstants<float>::twoPi;
-				const float dotX  = cx + radius * std::sin( angle );
-				const float dotY  = cy - radius * std::cos( angle );
-				const float t     = static_cast<float>( m_flash[ i ] ) / k_flash_frames;
-				const float dotR  = k_dot_r_normal + ( k_dot_r_peak - k_dot_r_normal ) * t;
-				g.setColour( ::juce::Colour( 0xffaaaacc ) );
+				g.setColour( colour );
 				g.fillEllipse( dotX - dotR, dotY - dotR, dotR * 2.0f, dotR * 2.0f );
 
-				if ( m_flash[ i ] > 0 )
-					--m_flash[ i ];
+				if ( mTrigger[ i ] > 0 ) --mTrigger[ i ];
 			}
 		}
 
 	 private:
-		static constexpr int   k_flash_frames = 5;    // ~167 ms at 30 Hz
-		static constexpr float k_dot_r_normal = 5.0f;
-		static constexpr float k_dot_r_peak   = 14.0f;
+		static constexpr int   k_flash_frames    = 10;
+		static constexpr float k_dot_r_normal    = 5.0f;
+		static constexpr float k_dot_r_peak      = 14.0f;
+		static constexpr float k_min_radius_ratio = 0.15f; // innermost ring as fraction of maxR
 
-		std::vector<VoiceState> m_voices;
-		std::vector<int>        m_flash;
+		::std::vector<VoiceState>     m_voices;
+		::std::vector<::juce::Colour> mColours;
+		::std::vector<int>            mTrigger;
 	};
 
 } // namespace plop::ui
