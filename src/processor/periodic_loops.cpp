@@ -1,7 +1,9 @@
 #include "periodic_loops.hpp"
+
 #include "logging/logging.hpp"
 #include "ui/p_loops_ui.hpp"
 #include "utils/constants.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -9,114 +11,57 @@
 
 using ::juce::AudioBuffer;
 using ::juce::AudioChannelSet;
-using ::juce::AudioPluginInstance;
 using ::juce::AudioProcessor;
 using ::juce::AudioProcessorEditor;
 using ::juce::File;
-using ::juce::Graphics;
-using ::juce::Identifier;
 using ::juce::MemoryBlock;
 using ::juce::MidiBuffer;
 using ::juce::MidiMessage;
 using ::juce::PluginHostType;
-using ::juce::SystemStats;
-using ::juce::ValueTree;
-using ::juce::XmlElement;
 
+using ::std::ceil;
+using ::std::clamp;
+using ::std::initializer_list;
 using ::std::make_shared;
-using ::std::next;
-using ::std::shared_ptr;
+using ::std::memory_order_acquire;
 using ::std::string;
-using ::std::unique_ptr;
+using ::std::to_string;
 using ::std::vector;
-using ::std::string_view_literals::operator""sv;
 
 namespace ranges = ::std::ranges;
-
-constexpr auto SPEC_XML_TAG         = "dstate"sv;
-constexpr auto UI_XML_TAG           = "dstateUI"sv;
-constexpr auto PLUGIN_OTHER_XML_TAG = "dstatePlugin"sv;
 
 using namespace ::plop::p_loops;
 
 p_loops::p_loops() : AudioProcessor( p_loops::get_midifx_bus_layout() ) {
 
-	//     new MusicBallDef(4, 0, 1f, 72, 0, new MusicBallGeom(15, 250), new Col(0xccc353)),
-	// new MusicBallDef(4, 0.33f, 1f, 67, 0, new MusicBallGeom(12, 250), new Col(0xccc353)),
-	// new MusicBallDef(4, 0.5f, 2f, 65, 0, new MusicBallGeom(12, 250), new Col(0xccc353)),
-	// new MusicBallDef(4, 1.33f, 1f, 66, 0, new MusicBallGeom(12, 250), new Col(0xccc353)),
-	// new MusicBallDef(4, 1.5f, 1f, 65, 0, new MusicBallGeom(12, 250), new Col(0xccc353)),
-
-	// new MusicBallDef(4, 2, 1f, 72, 0, new MusicBallGeom(15, 250), new Col(0xccc3f3)),
-	// new MusicBallDef(4, 2.33f, 1f, 67, 0, new MusicBallGeom(12, 250), new Col(0xccc3f3)),
-	// new MusicBallDef(4, 2.5f, 2f, 65, 0, new MusicBallGeom(12, 250), new Col(0xccc3f3)),
-	// new MusicBallDef(4, 3.33f, 1f, 60, 0, new MusicBallGeom(12, 250), new Col(0xccc3f3)),
-	// new MusicBallDef(4, 4.5f, 1f, 63, 0, new MusicBallGeom(12, 250), new Col(0xccc3f3))
-
 	// DRUMS
-	for ( const PeriodicNote &note : ::std::initializer_list<PeriodicNote>{
+	for ( const PeriodicNote &note : initializer_list<PeriodicNote>{
 
-		{ .pitch = 46, .period = 16.0f, .offset = 0.1f, .duration = 1.0f, .channel = 2 },
-		{ .pitch = 36, .period = 2.0f, .offset = 0, .duration = 1.0f, .channel = 2 },
-		{ .pitch = 42, .period = 1.0f, .offset = 0.5, .duration = 1.0f, .channel = 2 },
+			  { .pitch = 46, .period = 16.0f, .offset = 0.1f, .duration = 1.0f, .channel = 2 },
+			  { .pitch = 36, .period = 2.0f, .offset = 0, .duration = 1.0f, .channel = 2 },
+			  { .pitch = 42, .period = 1.0f, .offset = 0.5, .duration = 1.0f, .channel = 2 },
 
-		{ .pitch = 72, .period = 16.0f, .offset = 0, .duration = 2.0f, .channel = 0 },
-		{ .pitch = 67, .period = 16.0f, .offset = 2 * 0.33f, .duration = 0.5f, .channel = 0 },
-		{ .pitch = 65, .period = 16.0f, .offset = 2 * 0.5f, .duration = 0.5f, .channel = 0 },
-		{ .pitch = 66, .period = 16.0f, .offset = 2 * 1.35f, .duration = 0.5f, .channel = 0 },
-		{ .pitch = 65, .period = 16.0f, .offset = 2 * 1.35f, .duration = 0.5f, .channel = 0 },
-		{ .pitch = 72, .period = 16.0f, .offset = 2 * 2, .duration = 2.0f, .channel = 0 },
-		{ .pitch = 67, .period = 16.0f, .offset = 2 * 2.33f, .duration = 0.5f, .channel = 0 },
-		{ .pitch = 65, .period = 16.0f, .offset = 2 * 2.5f, .duration = 0.5f, .channel = 0 },
-		{ .pitch = 60, .period = 16.0f, .offset = 2 * 3.35f, .duration = 0.5f, .channel = 0 },
-		{ .pitch = 63, .period = 16.0f, .offset = 2 * 3.5f, .duration = 0.5f, .channel = 0 },
+			  { .pitch = 72, .period = 16.0f, .offset = 0, .duration = 2.0f, .channel = 0 },
+			  { .pitch = 67, .period = 16.0f, .offset = 2 * 0.33f, .duration = 0.5f, .channel = 0 },
+			  { .pitch = 65, .period = 16.0f, .offset = 2 * 0.5f, .duration = 0.5f, .channel = 0 },
+			  { .pitch = 66, .period = 16.0f, .offset = 2 * 1.35f, .duration = 0.5f, .channel = 0 },
+			  { .pitch = 65, .period = 16.0f, .offset = 2 * 1.35f, .duration = 0.5f, .channel = 0 },
+			  { .pitch = 72, .period = 16.0f, .offset = 2 * 2, .duration = 2.0f, .channel = 0 },
+			  { .pitch = 67, .period = 16.0f, .offset = 2 * 2.33f, .duration = 0.5f, .channel = 0 },
+			  { .pitch = 65, .period = 16.0f, .offset = 2 * 2.5f, .duration = 0.5f, .channel = 0 },
+			  { .pitch = 60, .period = 16.0f, .offset = 2 * 3.35f, .duration = 0.5f, .channel = 0 },
+			  { .pitch = 63, .period = 16.0f, .offset = 2 * 3.5f, .duration = 0.5f, .channel = 0 },
 
-		{ .pitch = 60, .period = 4.0f, .offset = 2 * 0.0f, .duration = 0.5f, .channel = 1 },
-		{ .pitch = 63, .period = 4.0f, .offset = 2 * 1.5f, .duration = 0.5f, .channel = 1 },
-		{ .pitch = 65, .period = 4.0f, .offset = 2 * 0.0f, .duration = 0.5f, .channel = 1 },
-		{ .pitch = 67, .period = 8.0f, .offset = 2 * 1.25f, .duration = 0.5f, .channel = 1 },
-		{ .pitch = 67, .period = 12.0f, .offset = 2 * 0.0f, .duration = 0.5f, .channel = 1 },
-		{ .pitch = 69, .period = 16.0f, .offset = 2 * 1.5f, .duration = 0.5f, .channel = 1 },
-		{ .pitch = 72, .period = 16.0f, .offset = 2 * 1.5f, .duration = 0.5f, .channel = 1 },
+			  { .pitch = 60, .period = 4.0f, .offset = 2 * 0.0f, .duration = 0.5f, .channel = 1 },
+			  { .pitch = 63, .period = 4.0f, .offset = 2 * 1.5f, .duration = 0.5f, .channel = 1 },
+			  { .pitch = 65, .period = 4.0f, .offset = 2 * 0.0f, .duration = 0.5f, .channel = 1 },
+			  { .pitch = 67, .period = 8.0f, .offset = 2 * 1.25f, .duration = 0.5f, .channel = 1 },
+			  { .pitch = 67, .period = 12.0f, .offset = 2 * 0.0f, .duration = 0.5f, .channel = 1 },
+			  { .pitch = 69, .period = 16.0f, .offset = 2 * 1.5f, .duration = 0.5f, .channel = 1 },
+			  { .pitch = 72, .period = 16.0f, .offset = 2 * 1.5f, .duration = 0.5f, .channel = 1 },
 
-	} ) addNote( note );
-
-	// =====================
-
-	// notes.add( { .pitch = 46, .period = 16.0f, .offset = 0.1, .duration = 1.0f, .channel = 2 } );
-	// notes.add( { .pitch = 36, .period = 2.0f, .offset = 0, .duration = 1.0f, .channel = 2 } );
-	// notes.add( { .pitch = 42, .period = 1.0f, .offset = 0.5, .duration = 1.0f, .channel = 2 } );
-	// // new MusicBallDef(0.5f, 0, 0.25f, 36, 2, new MusicBallGeom(24, 1), new Col(0x33cc77)),
-	// // new MusicBallDef(0.25f, 0.125f, 0.25f, 42, 2, new MusicBallGeom(12, 1), new Col(0x6677cc)),
-	// // new MusicBallDef(4f, 0.125f, 0.25f, 48, 2, new MusicBallGeom(6, 1), new Col(0xffffff)),
-
-	// notes.add( { .pitch = 72, .period = 8.0f, .offset = 0, .duration = 2.0f, .channel = 0 } );
-	// notes.add( { .pitch = 67, .period = 8.0f, .offset = 0.33f, .duration = 0.5f, .channel = 0 } );
-	// notes.add( { .pitch = 65, .period = 8.0f, .offset = 0.5f, .duration = 0.5f, .channel = 0 } );
-	// notes.add( { .pitch = 66, .period = 8.0f, .offset = 1.35f, .duration = 0.5f, .channel = 0 } );
-	// notes.add( { .pitch = 65, .period = 8.0f, .offset = 1.35f, .duration = 0.5f, .channel = 0 } );
-
-	// notes.add( { .pitch = 72, .period = 8.0f, .offset = 2, .duration = 2.0f, .channel = 0 } );
-	// notes.add( { .pitch = 67, .period = 8.0f, .offset = 2.33f, .duration = 0.5f, .channel = 0 } );
-	// notes.add( { .pitch = 65, .period = 8.0f, .offset = 2.5f, .duration = 0.5f, .channel = 0 } );
-	// notes.add( { .pitch = 60, .period = 8.0f, .offset = 3.35f, .duration = 0.5f, .channel = 0 } );
-	// notes.add( { .pitch = 63, .period = 8.0f, .offset = 4.5f, .duration = 0.5f, .channel = 0 } );
-
-	// //     new MusicBallDef(1f, 0f, 0.5f, 60, 1, new MusicBallGeom(8, 100), new Col(0xcc3355)),
-	// // new MusicBallDef(1f, 1.5f, 0.5f, 63, 1, new MusicBallGeom(8, 100), new Col(0xcc3355)),
-	// // new MusicBallDef(2f, 0f, 0.5f, 65, 1, new MusicBallGeom(8, 150), new Col(0xc3f33f)),
-	// // new MusicBallDef(2f, 1.25f, 0.5f, 67, 1, new MusicBallGeom(8, 150), new Col(0xf3f33f)),
-
-	// // new MusicBallDef(3f, 0f, 0.5f, 67, 1, new MusicBallGeom(10, 180), new Col(0xf3aca3)),
-	// // new MusicBallDef(4f, 1.5f, 0.5f, 69, 1, new MusicBallGeom(10, 200), new Col(0x3ff393)),
-	// // new MusicBallDef(4f, 1.5f, 0.5f, 72, 1, new MusicBallGeom(10, 200), new Col(0x3ff393))
-	// notes.add( { .pitch = 60, .period = 1.0f, .offset = 0.0f, .duration = 0.5f, .channel = 1 } );
-	// notes.add( { .pitch = 63, .period = 1.0f, .offset = 1.5f, .duration = 0.5f, .channel = 1 } );
-	// notes.add( { .pitch = 65, .period = 2.0f, .offset = 0.0f, .duration = 0.5f, .channel = 1 } );
-	// notes.add( { .pitch = 67, .period = 2.0f, .offset = 1.25f, .duration = 0.5f, .channel = 1 } );
-	// notes.add( { .pitch = 67, .period = 3.0f, .offset = 0.0f, .duration = 0.5f, .channel = 1 } );
-	// notes.add( { .pitch = 69, .period = 4.0f, .offset = 1.5f, .duration = 0.5f, .channel = 1 } );
-	// notes.add( { .pitch = 72, .period = 4.0f, .offset = 1.5f, .duration = 0.5f, .channel = 1 } );
+			} )
+		addNote( note );
 
 	pl_info( "Plugin Started" );
 }
@@ -152,7 +97,7 @@ void p_loops::releaseResources() {
 }
 
 void p_loops::addNote( const PeriodicNote &note ) {
-	swapBuffer( [&]( NoteBuffer &buf ) {
+	swapBuffer( [ & ]( NoteBuffer &buf ) {
 		if ( buf.count < MAX_NOTES )
 			buf.notes[ buf.count++ ] = note;
 	} );
@@ -160,8 +105,9 @@ void p_loops::addNote( const PeriodicNote &note ) {
 }
 
 void p_loops::removeNote( int index ) {
-	if ( index < 0 || index >= static_cast<int>( m_ui_notes.size() ) ) return;
-	swapBuffer( [index]( NoteBuffer &buf ) {
+	if ( index < 0 || index >= static_cast<int>( m_ui_notes.size() ) )
+		return;
+	swapBuffer( [ index ]( NoteBuffer &buf ) {
 		if ( index < buf.count ) {
 			for ( int i = index; i < buf.count - 1; ++i )
 				buf.notes[ i ] = buf.notes[ i + 1 ];
@@ -172,8 +118,9 @@ void p_loops::removeNote( int index ) {
 }
 
 void p_loops::updateNote( int index, const PeriodicNote &note ) {
-	if ( index < 0 || index >= static_cast<int>( m_ui_notes.size() ) ) return;
-	swapBuffer( [index, &note]( NoteBuffer &buf ) {
+	if ( index < 0 || index >= static_cast<int>( m_ui_notes.size() ) )
+		return;
+	swapBuffer( [ index, &note ]( NoteBuffer &buf ) {
 		if ( index < buf.count )
 			buf.notes[ index ] = note;
 	} );
@@ -190,7 +137,7 @@ void p_loops::processBlock( AudioBuffer<float> &buffer, MidiBuffer &midi ) {
 	midi.clear();
 
 	const auto        numSamples = buffer.getNumSamples();
-	const NoteBuffer &noteBuf    = m_note_buf[ m_active_buf.load( std::memory_order_acquire ) ];
+	const NoteBuffer &noteBuf    = m_note_buf[ m_active_buf.load( memory_order_acquire ) ];
 
 	if ( noteBuf.count == 0 ) {
 		time += numSamples;
@@ -216,7 +163,7 @@ void p_loops::processBlock( AudioBuffer<float> &buffer, MidiBuffer &midi ) {
 		if ( note.period <= 0.0f )
 			continue;
 
-		auto n = static_cast<int>( std::ceil( ( blockStartBeat - note.duration - note.offset ) / note.period - 1e-6f ) );
+		auto n = static_cast<int>( ceil( ( blockStartBeat - note.duration - note.offset ) / note.period - 1e-6f ) );
 		if ( n < 0 )
 			n = 0;
 
@@ -225,8 +172,7 @@ void p_loops::processBlock( AudioBuffer<float> &buffer, MidiBuffer &midi ) {
 			if ( offBeat >= blockEndBeat )
 				break;
 			if ( offBeat >= blockStartBeat ) {
-				const int offset =
-				  std::clamp( static_cast<int>( ( offBeat - blockStartBeat ) * samplesPerBeat ), 0, numSamples - 1 );
+				const int offset = clamp( static_cast<int>( ( offBeat - blockStartBeat ) * samplesPerBeat ), 0, numSamples - 1 );
 				midi.addEvent( MidiMessage::noteOff( note.channel + 1, note.pitch ), offset );
 			}
 			++n;
@@ -239,7 +185,7 @@ void p_loops::processBlock( AudioBuffer<float> &buffer, MidiBuffer &midi ) {
 		if ( note.period <= 0.0f )
 			continue;
 
-		auto n = static_cast<int>( std::ceil( ( blockStartBeat - note.offset ) / note.period - 1e-6f ) );
+		auto n = static_cast<int>( ceil( ( blockStartBeat - note.offset ) / note.period - 1e-6f ) );
 		if ( n < 0 )
 			n = 0;
 
@@ -247,7 +193,7 @@ void p_loops::processBlock( AudioBuffer<float> &buffer, MidiBuffer &midi ) {
 			const float onBeat = static_cast<float>( n ) * note.period + note.offset;
 			if ( onBeat >= blockEndBeat )
 				break;
-			const int offset = std::clamp( static_cast<int>( ( onBeat - blockStartBeat ) * samplesPerBeat ), 0, numSamples - 1 );
+			const int offset = clamp( static_cast<int>( ( onBeat - blockStartBeat ) * samplesPerBeat ), 0, numSamples - 1 );
 			midi.addEvent( MidiMessage::noteOn( note.channel + 1, note.pitch, (uint8_t)100 ), offset );
 			++n;
 		}

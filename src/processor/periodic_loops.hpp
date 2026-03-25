@@ -128,17 +128,16 @@ namespace plop::p_loops {
 			int                                 count = 0;
 		};
 
-		NoteBuffer       m_note_buf[2];
+		NoteBuffer       m_note_buf[ 2 ];
 		std::atomic<int> m_active_buf{ 0 };
 
 		/// UI-thread mirror — kept in sync by addNote / removeNote.
 		::std::vector<PeriodicNote> m_ui_notes;
 
 		/// Swap helper: copy active → inactive, apply fn, then promote inactive.
-		template<typename Fn>
-		void swapBuffer( Fn &&fn )
-		{
-			const int inactive    = 1 - m_active_buf.load( std::memory_order_relaxed );
+		template <typename Fn>
+		void swapBuffer( Fn &&fn ) {
+			const int inactive     = 1 - m_active_buf.load( std::memory_order_relaxed );
 			m_note_buf[ inactive ] = m_note_buf[ m_active_buf.load( std::memory_order_acquire ) ];
 			fn( m_note_buf[ inactive ] );
 			m_active_buf.store( inactive, std::memory_order_release );
@@ -147,7 +146,7 @@ namespace plop::p_loops {
 
 		std::atomic<int64_t> time{ 0 };
 		double               mSampleRate = 44100.0;
-		float                bpm         = 120.0f;
+		float                bpm         = 90.0f;
 
 		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR( p_loops )
 	};

@@ -36,9 +36,9 @@ namespace plop::ui {
 	 private:
 		::juce::Colour nextPaletteColour() const {
 			static const ::juce::Colour palette[] = {
-			  ::juce::Colour( 0xff4fc3f7 ), ::juce::Colour( 0xffef5350 ), ::juce::Colour( 0xff66bb6a ),
-			  ::juce::Colour( 0xffffa726 ), ::juce::Colour( 0xffab47bc ), ::juce::Colour( 0xff26c6da ),
-			  ::juce::Colour( 0xffec407a ), ::juce::Colour( 0xff8d6e63 ),
+				::juce::Colour( 0xff4fc3f7 ), ::juce::Colour( 0xffef5350 ), ::juce::Colour( 0xff66bb6a ),
+				::juce::Colour( 0xffffa726 ), ::juce::Colour( 0xffab47bc ), ::juce::Colour( 0xff26c6da ),
+				::juce::Colour( 0xffec407a ), ::juce::Colour( 0xff8d6e63 ),
 			};
 			return palette[ m_note_colours.size() % std::size( palette ) ];
 		}
@@ -88,11 +88,10 @@ namespace plop::ui {
 			std::vector<OrbitalDisplay::VoiceState> states;
 			states.reserve( static_cast<size_t>( notes.size() ) );
 			for ( const auto &note : notes ) {
-				const float phase       = std::fmod( currentBeat + note.offset, note.period ) / note.period;
-				const bool  triggered   = std::floor( currentBeat / note.period ) > std::floor( lastBeat / note.period );
-				const float trackRadius = pitchRange > 0
-				                           ? static_cast<float>( note.pitch - minPitch ) / pitchRange
-				                           : 0.5f;
+				const float phase       = std::fmod( currentBeat, note.period ) / note.period - note.offset / note.period;
+				const bool  triggered   = std::floor( ( currentBeat - note.offset ) / note.period )
+				                          > std::floor( ( lastBeat - note.offset ) / note.period );
+				const float trackRadius = pitchRange > 0 ? static_cast<float>( note.pitch - minPitch ) / pitchRange : 0.5f;
 				states.push_back( { phase, triggered, trackRadius } );
 			}
 
@@ -117,21 +116,21 @@ namespace plop::ui {
 		for ( size_t i = 0; i < owner.getNotes().size(); ++i )
 			m_note_colours.push_back( nextPaletteColour() );
 
-		m_note_list_panel.onColourSwatchClicked = [this]( int index, ::juce::Rectangle<int> screenBounds ) {
+		m_note_list_panel.onColourSwatchClicked = [ this ]( int index, ::juce::Rectangle<int> screenBounds ) {
 			openColourPicker( index, screenBounds );
 		};
 
-		m_note_list_panel.onAddNote = [this] {
+		m_note_list_panel.onAddNote = [ this ] {
 			constexpr PeriodicNote defaultNote{ .pitch = 60, .period = 1.0f, .offset = 0.0f, .duration = 0.5f, .channel = 0 };
 			m_plugin_instance_ref.addNote( defaultNote );
 			m_note_colours.push_back( nextPaletteColour() );
 		};
 
-		m_note_list_panel.onNoteChanged = [this]( int index, PeriodicNote note ) {
+		m_note_list_panel.onNoteChanged = [ this ]( int index, PeriodicNote note ) {
 			m_plugin_instance_ref.updateNote( index, note );
 		};
 
-		m_note_list_panel.onRemoveNote = [this]( int index ) {
+		m_note_list_panel.onRemoveNote = [ this ]( int index ) {
 			m_plugin_instance_ref.removeNote( index );
 			if ( index < static_cast<int>( m_note_colours.size() ) )
 				m_note_colours.erase( m_note_colours.begin() + index );
