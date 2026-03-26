@@ -10,6 +10,8 @@ namespace plop::ui {
 
 	class OrbitalDisplay : public ::juce::Component {
 	 public:
+		OrbitalDisplay() {
+		}
 		struct VoiceState {
 			float phase;       // [0, 1) — position around the circle
 			bool  triggered;   // true on the frame a lap completes
@@ -17,13 +19,13 @@ namespace plop::ui {
 		};
 
 		void setVoices( std::vector<VoiceState> voices ) {
-			if ( voices.size() != m_voices.size() )
+			if ( voices.size() != mVoices.size() )
 				mTrigger.assign( voices.size(), 0 );
 			for ( int i = 0; i < static_cast<int>( voices.size() ); ++i ) {
 				if ( voices[ i ].triggered )
 					mTrigger[ i ] = k_flash_frames;
 			}
-			m_voices = std::move( voices );
+			mVoices = std::move( voices );
 		}
 
 		void setColours( const ::std::vector<::juce::Colour> &colors ) {
@@ -32,7 +34,7 @@ namespace plop::ui {
 
 		void paint( ::juce::Graphics &g ) override {
 			g.fillAll( ::juce::Colour( 0xff1a1a2e ) );
-			if ( m_voices.empty() )
+			if ( mVoices.empty() )
 				return;
 
 			const float cx   = getWidth() * 0.5f;
@@ -43,8 +45,8 @@ namespace plop::ui {
 			g.setColour( ::juce::Colour( 0xff2a2a44 ) );
 
 			// Draw dots
-			for ( int i = 0; i < static_cast<int>( m_voices.size() ); ++i ) {
-				const auto &voice  = m_voices[ i ];
+			for ( int i = 0; i < static_cast<int>( mVoices.size() ); ++i ) {
+				const auto &voice  = mVoices[ i ];
 				const float r      = minR + voice.trackRadius * ( maxR - minR );
 				const float angle  = voice.phase * ::juce::MathConstants<float>::twoPi;
 				const float dotX   = cx + r * std::sin( angle );
@@ -67,9 +69,11 @@ namespace plop::ui {
 		static constexpr float k_dot_r_peak       = 14.0f;
 		static constexpr float k_min_radius_ratio = 0.15f; // innermost ring as fraction of maxR
 
-		::std::vector<VoiceState>     m_voices;
+		::std::vector<VoiceState>     mVoices;
 		::std::vector<::juce::Colour> mColours;
 		::std::vector<int>            mTrigger;
+
+		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR( OrbitalDisplay )
 	};
 
 } // namespace plop::ui

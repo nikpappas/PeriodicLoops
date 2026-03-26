@@ -20,18 +20,18 @@ namespace plop::ui {
 			  , private ::juce::Timer
 			  , private ::juce::ChangeListener {
 	 private:
-		::plop::p_loops::p_loops &m_plugin_instance_ref;
-		TimeDisplay               m_time_display;
-		OrbitalDisplay            m_orbital_display;
-		NoteListPanel             m_note_list_panel;
-		CcListPanel               m_cc_list_panel;
-		::juce::Viewport          m_note_viewport;
-		::juce::Viewport          m_cc_viewport;
-		int64_t                   m_last_time = 0;
+		::plop::p_loops::p_loops &mPluginInstanceRef;
+		TimeDisplay               mTimeDisplay;
+		OrbitalDisplay            mOrbitalDisplay;
+		NoteListPanel             mNoteListPanel;
+		CcListPanel               mCcListPanel;
+		int64_t                   mLastTime = 0;
 
-		std::vector<::juce::Colour>                            m_note_colours;
-		::juce::Component::SafePointer<::juce::ColourSelector> m_active_selector;
-		int                                                    m_editing_index = -1;
+		std::vector<::juce::Colour>                            mNoteColours;
+		::juce::Component::SafePointer<::juce::ColourSelector> mActiveSelector;
+		int                                                    mEditingIndex = -1;
+
+		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR( p_loops_ui )
 
 	 public:
 		explicit p_loops_ui( ::plop::p_loops::p_loops &owner );
@@ -44,42 +44,54 @@ namespace plop::ui {
 				::juce::Colour( 0xffffa726 ), ::juce::Colour( 0xffab47bc ), ::juce::Colour( 0xff26c6da ),
 				::juce::Colour( 0xffec407a ), ::juce::Colour( 0xff8d6e63 ),
 			};
-			return palette[ m_note_colours.size() % std::size( palette ) ];
+			return palette[ mNoteColours.size() % std::size( palette ) ];
 		}
 
 		void changeListenerCallback( ::juce::ChangeBroadcaster *source ) override {
-			if ( m_active_selector != nullptr && source == m_active_selector.getComponent() && m_editing_index >= 0 ) {
-				m_note_colours[ m_editing_index ] = m_active_selector->getCurrentColour();
+			if ( mActiveSelector != nullptr && source == mActiveSelector.getComponent() && mEditingIndex >= 0 ) {
+				mNoteColours[ mEditingIndex ] = mActiveSelector->getCurrentColour();
 			}
 		}
 
 		void openColourPicker( int index, ::juce::Rectangle<int> screenBounds ) {
-			if ( index < 0 || index >= static_cast<int>( m_note_colours.size() ) )
+			if ( index < 0 || index >= static_cast<int>( mNoteColours.size() ) )
 				return;
-			if ( m_active_selector != nullptr )
-				m_active_selector->removeChangeListener( this );
+			if ( mActiveSelector != nullptr )
+				mActiveSelector->removeChangeListener( this );
 
 			auto selector = std::make_unique<::juce::ColourSelector>( ::juce::ColourSelector::showColourAtTop
 			                                                          | ::juce::ColourSelector::showSliders
 			                                                          | ::juce::ColourSelector::showColourspace );
 			selector->setSize( 300, 380 );
-			selector->setCurrentColour( m_note_colours[ index ] );
+			selector->setCurrentColour( mNoteColours[ index ] );
 			selector->addChangeListener( this );
 
-			m_active_selector = selector.get();
-			m_editing_index   = index;
+			mActiveSelector = selector.get();
+			mEditingIndex   = index;
 
 			::juce::CallOutBox::launchAsynchronously( std::move( selector ), screenBounds, nullptr );
 		}
 
+		void resized() override {
+			constexpr int panel_w = 240;
+			constexpr int top_h   = 50;
+			const int     w       = getWidth();
+			const int     h       = getHeight();
+			const int     half_h  = ( h - top_h ) / 2;
+
+			mOrbitalDisplay.setBounds( 0, top_h, w - panel_w, h - top_h );
+			mNoteListPanel.setBounds( w - panel_w, top_h, panel_w, half_h );
+			mCcListPanel.setBounds( w - panel_w, top_h + half_h, panel_w, h - top_h - half_h );
+		}
+
 		void timerCallback() override {
-			const int64_t currentTime    = m_plugin_instance_ref.getTime();
-			const float   bpm            = m_plugin_instance_ref.getBpm();
-			const float   sampleRate     = static_cast<float>( m_plugin_instance_ref.getSampleRate() );
-			const auto   &notes          = m_plugin_instance_ref.getNotes();
+			const int64_t currentTime    = mPluginInstanceRef.getTime();
+			const float   bpm            = mPluginInstanceRef.getBpm();
+			const float   sampleRate     = static_cast<float>( mPluginInstanceRef.getSampleRate() );
+			const auto   &notes          = mPluginInstanceRef.getNotes();
 			const float   samplesPerBeat = sampleRate * 60.0f / bpm;
 			const float   currentBeat    = static_cast<float>( currentTime ) / samplesPerBeat;
-			const float   lastBeat       = static_cast<float>( m_last_time ) / samplesPerBeat;
+			const float   lastBeat       = static_cast<float>( mLastTime ) / samplesPerBeat;
 
 			// Compute pitch range for radius normalisation
 			int minPitch = 127, maxPitch = 0;
@@ -99,98 +111,77 @@ namespace plop::ui {
 				states.push_back( { phase, triggered, trackRadius } );
 			}
 
-			m_orbital_display.setVoices( std::move( states ) );
-			m_orbital_display.setColours( m_note_colours );
-			m_orbital_display.repaint();
+			mOrbitalDisplay.setVoices( std::move( states ) );
+			mOrbitalDisplay.setColours( mNoteColours );
+			mOrbitalDisplay.repaint();
 
-			m_note_list_panel.setNotes( { notes.begin(), notes.end() } );
-			m_note_list_panel.setColours( m_note_colours );
-			m_note_list_panel.setSize( m_note_viewport.getWidth(), m_note_list_panel.getContentHeight() );
-			m_note_list_panel.repaint();
+			mNoteListPanel.setNotes( { notes.begin(), notes.end() } );
+			mNoteListPanel.setColours( mNoteColours );
+			mNoteListPanel.repaint();
 
-			const auto &ccs = m_plugin_instance_ref.getCCs();
-			m_cc_list_panel.setCCs( { ccs.begin(), ccs.end() } );
-			m_cc_list_panel.setSize( m_cc_viewport.getWidth(), m_cc_list_panel.getContentHeight() );
-			m_cc_list_panel.repaint();
+			const auto &ccs = mPluginInstanceRef.getCCs();
+			mCcListPanel.setCCs( { ccs.begin(), ccs.end() } );
+			mCcListPanel.repaint();
 
-			m_time_display.setTime( currentTime );
-			m_time_display.repaint();
+			mTimeDisplay.setTime( currentTime );
+			mTimeDisplay.repaint();
 
-			m_last_time = currentTime;
+			mLastTime = currentTime;
 		}
 	};
 
 	p_loops_ui::p_loops_ui( ::plop::p_loops::p_loops &owner ) :
-			  ::juce::AudioProcessorEditor( owner ), m_plugin_instance_ref( owner ) {
+			  ::juce::AudioProcessorEditor( owner ), mPluginInstanceRef( owner ) {
 		// Assign initial colours for pre-loaded notes
 		for ( size_t i = 0; i < owner.getNotes().size(); ++i )
-			m_note_colours.push_back( nextPaletteColour() );
+			mNoteColours.push_back( nextPaletteColour() );
 
-		m_note_list_panel.onColourSwatchClicked = [ this ]( int index, ::juce::Rectangle<int> screenBounds ) {
+		mNoteListPanel.onColourSwatchClicked = [ this ]( int index, ::juce::Rectangle<int> screenBounds ) {
 			openColourPicker( index, screenBounds );
 		};
 
-		m_note_list_panel.onAddNote = [ this ] {
+		mNoteListPanel.onAddNote = [ this ] {
 			constexpr PeriodicNote defaultNote{ .pitch = 60, .period = 1.0f, .offset = 0.0f, .duration = 0.5f, .channel = 0 };
-			m_plugin_instance_ref.addNote( defaultNote );
-			m_note_colours.push_back( nextPaletteColour() );
+			mPluginInstanceRef.addNote( defaultNote );
+			mNoteColours.push_back( nextPaletteColour() );
 		};
 
-		m_note_list_panel.onNoteChanged = [ this ]( int index, PeriodicNote note ) {
-			m_plugin_instance_ref.updateNote( index, note );
+		mNoteListPanel.onNoteChanged = [ this ]( int index, PeriodicNote note ) {
+			mPluginInstanceRef.updateNote( index, note );
 		};
 
-		m_note_list_panel.onRemoveNote = [ this ]( int index ) {
-			m_plugin_instance_ref.removeNote( index );
-			if ( index < static_cast<int>( m_note_colours.size() ) )
-				m_note_colours.erase( m_note_colours.begin() + index );
+		mNoteListPanel.onRemoveNote = [ this ]( int index ) {
+			mPluginInstanceRef.removeNote( index );
+			if ( index < static_cast<int>( mNoteColours.size() ) )
+				mNoteColours.erase( mNoteColours.begin() + index );
 		};
 
-		m_cc_list_panel.onAddCc = [ this ] {
+		mCcListPanel.onAddCc = [ this ] {
 			constexpr PeriodicCC defaultCc{ .number = 1, .period = 1.0f, .offset = 0.0f, .channel = 0 };
-			m_plugin_instance_ref.addCc( defaultCc );
+			mPluginInstanceRef.addCc( defaultCc );
 		};
 
-		m_cc_list_panel.onCcChanged = [ this ]( int index, PeriodicCC cc ) {
-			m_plugin_instance_ref.updateCc( index, cc );
-		};
+		mCcListPanel.onCcChanged = [ this ]( int index, PeriodicCC cc ) { mPluginInstanceRef.updateCc( index, cc ); };
 
-		m_cc_list_panel.onRemoveCc = [ this ]( int index ) {
-			m_plugin_instance_ref.removeCc( index );
-		};
+		mCcListPanel.onRemoveCc = [ this ]( int index ) { mPluginInstanceRef.removeCc( index ); };
 
-		setSize( 800, 600 );
+		addAndMakeVisible( mTimeDisplay );
+		mTimeDisplay.setBounds( 10, 10, 200, 30 );
 
-		constexpr int panel_w  = 240;
-		constexpr int top_h    = 50;
-		constexpr int half_h   = ( 600 - top_h ) / 2;
+		addAndMakeVisible( mOrbitalDisplay );
+		mNoteListPanel.setShowChannel( owner.wrapperType == ::juce::AudioProcessor::wrapperType_Standalone );
+		addAndMakeVisible( mNoteListPanel );
+		addAndMakeVisible( mCcListPanel );
 
-		addAndMakeVisible( m_time_display );
-		m_time_display.setBounds( 10, 10, 200, 30 );
+		setSize( 800, 600 ); // triggers resized()
 
-		addAndMakeVisible( m_orbital_display );
-		m_orbital_display.setBounds( 0, top_h, 800 - panel_w, 600 - top_h );
-
-		m_note_list_panel.setShowChannel( owner.wrapperType == ::juce::AudioProcessor::wrapperType_Standalone );
-		m_note_list_panel.setSize( panel_w, m_note_list_panel.getContentHeight() );
-		m_note_viewport.setViewedComponent( &m_note_list_panel, false );
-		m_note_viewport.setScrollBarsShown( true, false );
-		addAndMakeVisible( m_note_viewport );
-		m_note_viewport.setBounds( 800 - panel_w, top_h, panel_w, half_h );
-
-		m_cc_list_panel.setSize( panel_w, m_cc_list_panel.getContentHeight() );
-		m_cc_viewport.setViewedComponent( &m_cc_list_panel, false );
-		m_cc_viewport.setScrollBarsShown( true, false );
-		addAndMakeVisible( m_cc_viewport );
-		m_cc_viewport.setBounds( 800 - panel_w, top_h + half_h, panel_w, 600 - top_h - half_h );
-
-		setResizable( false, false );
+		setResizable( true, true );
 		startTimerHz( 30 );
 	}
 
 	p_loops_ui::~p_loops_ui() {
-		if ( m_active_selector != nullptr )
-			m_active_selector->removeChangeListener( this );
+		if ( mActiveSelector != nullptr )
+			mActiveSelector->removeChangeListener( this );
 		stopTimer();
 	}
 

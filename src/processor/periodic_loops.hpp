@@ -105,7 +105,7 @@ namespace plop::p_loops {
 
 		/// Returns the UI-thread view of the note list. Always called from the message thread.
 		const ::std::vector<PeriodicNote> &getNotes() const {
-			return m_ui_notes;
+			return mUiNotes;
 		}
 
 		/// Add a note. Must be called from the message thread only.
@@ -119,7 +119,7 @@ namespace plop::p_loops {
 
 		/// Returns the UI-thread view of the CC list. Always called from the message thread.
 		const ::std::vector<PeriodicCC> &getCCs() const {
-			return m_ui_ccs;
+			return mUiCcs;
 		}
 
 		/// Add a CC. Must be called from the message thread only.
@@ -154,10 +154,10 @@ namespace plop::p_loops {
 		std::atomic<int> mActiveCcBuf{ 0 };
 
 		/// UI-thread mirror — kept in sync by addNote / removeNote.
-		::std::vector<PeriodicNote> m_ui_notes;
+		::std::vector<PeriodicNote> mUiNotes;
 
 		/// UI-thread mirror — kept in sync by addCc / removeCc.
-		::std::vector<PeriodicCC> m_ui_ccs;
+		::std::vector<PeriodicCC> mUiCcs;
 
 		/// Swap helper: copy active → inactive, apply fn, then promote inactive.
 		template <typename Fn>

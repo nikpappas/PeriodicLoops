@@ -111,7 +111,7 @@ void p_loops::addNote( const PeriodicNote &note ) {
 		if ( buf.count < MAX_NOTES )
 			buf.notes[ buf.count++ ] = note;
 	} );
-	m_ui_notes.push_back( note );
+	mUiNotes.push_back( note );
 }
 
 void p_loops::addCc( const PeriodicCC &cc ) {
@@ -119,11 +119,11 @@ void p_loops::addCc( const PeriodicCC &cc ) {
 		if ( buf.count < MAX_NOTES )
 			buf.cc[ buf.count++ ] = cc;
 	} );
-	m_ui_ccs.push_back( cc );
+	mUiCcs.push_back( cc );
 }
 
 void p_loops::removeCc( int index ) {
-	if ( index < 0 || index >= static_cast<int>( m_ui_ccs.size() ) )
+	if ( index < 0 || index >= static_cast<int>( mUiCcs.size() ) )
 		return;
 	swapCCBuffer( [ index ]( CCBuffer &buf ) {
 		if ( index < buf.count ) {
@@ -132,21 +132,21 @@ void p_loops::removeCc( int index ) {
 			--buf.count;
 		}
 	} );
-	m_ui_ccs.erase( m_ui_ccs.begin() + index );
+	mUiCcs.erase( mUiCcs.begin() + index );
 }
 
 void p_loops::updateCc( int index, const PeriodicCC &cc ) {
-	if ( index < 0 || index >= static_cast<int>( m_ui_ccs.size() ) )
+	if ( index < 0 || index >= static_cast<int>( mUiCcs.size() ) )
 		return;
 	swapCCBuffer( [ index, &cc ]( CCBuffer &buf ) {
 		if ( index < buf.count )
 			buf.cc[ index ] = cc;
 	} );
-	m_ui_ccs[ index ] = cc;
+	mUiCcs[ index ] = cc;
 }
 
 void p_loops::removeNote( int index ) {
-	if ( index < 0 || index >= static_cast<int>( m_ui_notes.size() ) )
+	if ( index < 0 || index >= static_cast<int>( mUiNotes.size() ) )
 		return;
 	swapBuffer( [ index ]( NoteBuffer &buf ) {
 		if ( index < buf.count ) {
@@ -155,17 +155,17 @@ void p_loops::removeNote( int index ) {
 			--buf.count;
 		}
 	} );
-	m_ui_notes.erase( m_ui_notes.begin() + index );
+	mUiNotes.erase( mUiNotes.begin() + index );
 }
 
 void p_loops::updateNote( int index, const PeriodicNote &note ) {
-	if ( index < 0 || index >= static_cast<int>( m_ui_notes.size() ) )
+	if ( index < 0 || index >= static_cast<int>( mUiNotes.size() ) )
 		return;
 	swapBuffer( [ index, &note ]( NoteBuffer &buf ) {
 		if ( index < buf.count )
 			buf.notes[ index ] = note;
 	} );
-	m_ui_notes[ index ] = note;
+	mUiNotes[ index ] = note;
 }
 
 void p_loops::reset() {
@@ -189,6 +189,9 @@ void p_loops::processBlock( AudioBuffer<float> &buffer, MidiBuffer &midi ) {
 	float ppqPosition = -1.0f;
 	if ( auto *playH = getPlayHead() ) {
 		juce::AudioPlayHead::CurrentPositionInfo posInfo;
+		if ( !posInfo.isPlaying && wrapperType != wrapperType_Standalone ) {
+			return;
+		}
 		if ( playH->getCurrentPosition( posInfo ) ) {
 			bpm.store( static_cast<float>( posInfo.bpm ) );
 			if ( posInfo.isPlaying )
@@ -279,7 +282,7 @@ void p_loops::getStateInformation( MemoryBlock &destData ) {
 	juce::XmlElement root( "PeriodicLoopState" );
 
 	auto *notesEl = root.createNewChildElement( "Notes" );
-	for ( const auto &note : m_ui_notes ) {
+	for ( const auto &note : mUiNotes ) {
 		auto *el = notesEl->createNewChildElement( "Note" );
 		el->setAttribute( "pitch", note.pitch );
 		el->setAttribute( "period", note.period );
@@ -289,7 +292,7 @@ void p_loops::getStateInformation( MemoryBlock &destData ) {
 	}
 
 	auto *ccsEl = root.createNewChildElement( "CCs" );
-	for ( const auto &cc : m_ui_ccs ) {
+	for ( const auto &cc : mUiCcs ) {
 		auto *el = ccsEl->createNewChildElement( "CC" );
 		el->setAttribute( "number", cc.number );
 		el->setAttribute( "period", cc.period );
@@ -298,7 +301,7 @@ void p_loops::getStateInformation( MemoryBlock &destData ) {
 	}
 
 	copyXmlToBinary( root, destData );
-	pl_debug( "getStateInformation: saved " + to_string( m_ui_notes.size() ) + " notes, " + to_string( m_ui_ccs.size() ) + " CCs" );
+	pl_debug( "getStateInformation: saved " + to_string( mUiNotes.size() ) + " notes, " + to_string( mUiCcs.size() ) + " CCs" );
 }
 
 void p_loops::setStateInformation( const void *data, int sizeInBytes ) {
@@ -315,7 +318,7 @@ void p_loops::setStateInformation( const void *data, int sizeInBytes ) {
 	}
 
 	// Clear existing notes
-	while ( !m_ui_notes.empty() )
+	while ( !mUiNotes.empty() )
 		removeNote( 0 );
 
 	for ( const auto *el : notesEl->getChildIterator() ) {
@@ -330,7 +333,7 @@ void p_loops::setStateInformation( const void *data, int sizeInBytes ) {
 	}
 
 	// Clear existing CCs
-	while ( !m_ui_ccs.empty() )
+	while ( !mUiCcs.empty() )
 		removeCc( 0 );
 
 	if ( const auto *ccsEl = xml->getChildByName( "CCs" ) ) {
@@ -345,7 +348,7 @@ void p_loops::setStateInformation( const void *data, int sizeInBytes ) {
 		}
 	}
 
-	pl_debug( "setStateInformation: loaded " + to_string( m_ui_notes.size() ) + " notes, " + to_string( m_ui_ccs.size() ) + " CCs" );
+	pl_debug( "setStateInformation: loaded " + to_string( mUiNotes.size() ) + " notes, " + to_string( mUiCcs.size() ) + " CCs" );
 }
 
 File p_loops::log_file() {
