@@ -37,6 +37,14 @@ namespace plop::ui {
 			m_colours = std::move( colours );
 		}
 
+		void setShowChannel( bool show ) {
+			m_show_channel = show;
+		}
+
+		int getContentHeight() const {
+			return listTop() + static_cast<int>( m_notes.size() ) * row_h + 6 + 22 + 8;
+		}
+
 		void paint( ::juce::Graphics &g ) override {
 			g.fillAll( ::juce::Colour( 0xff12121f ) );
 
@@ -54,7 +62,9 @@ namespace plop::ui {
 			g.drawText( "Colour", padding,       y_cols, swatch_w, 20, ::juce::Justification::centredLeft );
 			g.drawText( "Pitch",  padding + 30,  y_cols, 40,       20, ::juce::Justification::centredLeft );
 			g.drawText( "Period", padding + 75,  y_cols, 55,       20, ::juce::Justification::centredLeft );
-			g.drawText( "Offset", padding + 135, y_cols, 65,       20, ::juce::Justification::centredLeft );
+			g.drawText( "Offset", padding + 135, y_cols, m_show_channel ? 45 : 65, 20, ::juce::Justification::centredLeft );
+			if ( m_show_channel )
+				g.drawText( "Ch", padding + 182, y_cols, 22, 20, ::juce::Justification::centredLeft );
 
 			// Divider
 			const int list_top = listTop();
@@ -82,9 +92,11 @@ namespace plop::ui {
 
 				// Editable fields — highlight on hover hint via brighter text
 				g.setColour( ::juce::Colours::white );
-				drawEditableCell( g, ::juce::String( note.pitch ),            pitchRect( i, list_top ),  i == m_editing_index && m_editing_field == Field::Pitch );
-				drawEditableCell( g, ::juce::String( note.period, 2 ) + " b", periodRect( i, list_top ), i == m_editing_index && m_editing_field == Field::Period );
-				drawEditableCell( g, ::juce::String( note.offset, 2 ) + " b", offsetRect( i, list_top ), i == m_editing_index && m_editing_field == Field::Offset );
+				drawEditableCell( g, ::juce::String( note.pitch ),            pitchRect( i, list_top ),   i == m_editing_index && m_editing_field == Field::Pitch );
+				drawEditableCell( g, ::juce::String( note.period, 2 ) + " b", periodRect( i, list_top ),  i == m_editing_index && m_editing_field == Field::Period );
+				drawEditableCell( g, ::juce::String( note.offset, 2 ) + " b", offsetRect( i, list_top ),  i == m_editing_index && m_editing_field == Field::Offset );
+				if ( m_show_channel )
+					drawEditableCell( g, ::juce::String( note.channel ), channelRect( i, list_top ), i == m_editing_index && m_editing_field == Field::Channel );
 
 				// Remove button
 				const auto rb = removeRect( i, list_top );
@@ -125,6 +137,10 @@ namespace plop::ui {
 					startEdit( i, Field::Offset, list_top );
 					return;
 				}
+				if ( m_show_channel && channelRect( i, list_top ).contains( e.getPosition() ) ) {
+					startEdit( i, Field::Channel, list_top );
+					return;
+				}
 				if ( onRemoveNote && removeRect( i, list_top ).contains( e.getPosition() ) ) {
 					onRemoveNote( i );
 					return;
@@ -138,7 +154,7 @@ namespace plop::ui {
 		}
 
 	 private:
-		enum class Field { None, Pitch, Period, Offset };
+		enum class Field { None, Pitch, Period, Offset, Channel };
 
 		static constexpr int swatch_w = 18;
 		static constexpr int swatch_h = 14;
@@ -151,6 +167,7 @@ namespace plop::ui {
 		::juce::TextEditor          m_editor;
 		int                         m_editing_index = -1;
 		Field                       m_editing_field = Field::None;
+		bool                        m_show_channel  = false;
 
 		int listTop() const { return header_h + 4 + 22; }
 
@@ -164,7 +181,10 @@ namespace plop::ui {
 			return { padding + 75, lt + i * row_h, 55, row_h };
 		}
 		::juce::Rectangle<int> offsetRect( int i, int lt ) const {
-			return { padding + 135, lt + i * row_h, 65, row_h };
+			return { padding + 135, lt + i * row_h, m_show_channel ? 45 : 65, row_h };
+		}
+		::juce::Rectangle<int> channelRect( int i, int lt ) const {
+			return { padding + 182, lt + i * row_h, 22, row_h };
 		}
 		::juce::Rectangle<int> removeRect( int i, int lt ) const {
 			return { getWidth() - padding - 16, lt + i * row_h + ( row_h - 16 ) / 2, 16, 16 };
@@ -199,10 +219,14 @@ namespace plop::ui {
 				bounds = periodRect( i, list_top );
 				text   = ::juce::String( m_notes[ i ].period );
 				m_editor.setInputRestrictions( 8, "0123456789." );
-			} else {
+			} else if ( field == Field::Offset ) {
 				bounds = offsetRect( i, list_top );
 				text   = ::juce::String( m_notes[ i ].offset );
 				m_editor.setInputRestrictions( 8, "0123456789." );
+			} else {
+				bounds = channelRect( i, list_top );
+				text   = ::juce::String( m_notes[ i ].channel );
+				m_editor.setInputRestrictions( 2, "0123456789" );
 			}
 
 			m_editor.setBounds( bounds.reduced( 2 ) );
@@ -221,8 +245,10 @@ namespace plop::ui {
 				updated.pitch = ::juce::jlimit( 0, 127, m_editor.getText().getIntValue() );
 			} else if ( m_editing_field == Field::Period ) {
 				updated.period = ::juce::jmax( 0.01f, m_editor.getText().getFloatValue() );
-			} else {
+			} else if ( m_editing_field == Field::Offset ) {
 				updated.offset = ::juce::jmax( 0.0f, m_editor.getText().getFloatValue() );
+			} else {
+				updated.channel = ::juce::jlimit( 0, 15, m_editor.getText().getIntValue() );
 			}
 
 			if ( onNoteChanged ) onNoteChanged( m_editing_index, updated );

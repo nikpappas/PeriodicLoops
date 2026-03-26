@@ -1,5 +1,5 @@
-#ifndef PLOP_SRC_PROCSSOR_PERIODIC_LOOPS_HPP
-#define PLOP_SRC_PROCSSOR_PERIODIC_LOOPS_HPP
+#ifndef PLOP_SRC_PROCESSOR_PERIODIC_LOOPS_HPP
+#define PLOP_SRC_PROCESSOR_PERIODIC_LOOPS_HPP
 
 #include <atomic>
 #include <vector>
@@ -117,6 +117,20 @@ namespace plop::p_loops {
 		/// Replace the note at the given index. Must be called from the message thread only.
 		void updateNote( int index, const PeriodicNote &note );
 
+		/// Returns the UI-thread view of the CC list. Always called from the message thread.
+		const ::std::vector<PeriodicCC> &getCCs() const {
+			return m_ui_ccs;
+		}
+
+		/// Add a CC. Must be called from the message thread only.
+		void addCc( const PeriodicCC &cc );
+
+		/// Remove the CC at the given index. Must be called from the message thread only.
+		void removeCc( int index );
+
+		/// Replace the CC at the given index. Must be called from the message thread only.
+		void updateCc( int index, const PeriodicCC &cc );
+
 	 private:
 		// ---- Audio-safe double buffer -----------------------------------------
 		// The UI thread writes to the inactive buffer then atomically promotes it.
@@ -128,29 +142,51 @@ namespace plop::p_loops {
 			int                                 count = 0;
 		};
 
-		NoteBuffer       m_note_buf[ 2 ];
-		std::atomic<int> m_active_buf{ 0 };
+		struct CCBuffer {
+			std::array<PeriodicCC, MAX_NOTES> cc{};
+			int                               count = 0;
+		};
+
+		NoteBuffer       mNoteBuf[ 2 ];
+		std::atomic<int> mActiveNoteBuf{ 0 };
+
+		CCBuffer         mCcBuf[ 2 ];
+		std::atomic<int> mActiveCcBuf{ 0 };
 
 		/// UI-thread mirror — kept in sync by addNote / removeNote.
 		::std::vector<PeriodicNote> m_ui_notes;
 
+		/// UI-thread mirror — kept in sync by addCc / removeCc.
+		::std::vector<PeriodicCC> m_ui_ccs;
+
 		/// Swap helper: copy active → inactive, apply fn, then promote inactive.
 		template <typename Fn>
 		void swapBuffer( Fn &&fn ) {
-			const int inactive     = 1 - m_active_buf.load( std::memory_order_relaxed );
-			m_note_buf[ inactive ] = m_note_buf[ m_active_buf.load( std::memory_order_acquire ) ];
-			fn( m_note_buf[ inactive ] );
-			m_active_buf.store( inactive, std::memory_order_release );
+			const int inactive   = 1 - mActiveNoteBuf.load( std::memory_order_relaxed );
+			mNoteBuf[ inactive ] = mNoteBuf[ mActiveNoteBuf.load( std::memory_order_acquire ) ];
+			fn( mNoteBuf[ inactive ] );
+			mActiveNoteBuf.store( inactive, std::memory_order_release );
 		}
+
+		/// Swap helper: copy active → inactive, apply fn, then promote inactive.
+		template <typename Fn>
+		void swapCCBuffer( Fn &&fn ) {
+			const int inactive = 1 - mActiveCcBuf.load( std::memory_order_relaxed );
+			mCcBuf[ inactive ] = mCcBuf[ mActiveCcBuf.load( std::memory_order_acquire ) ];
+			fn( mCcBuf[ inactive ] );
+			mActiveCcBuf.store( inactive, std::memory_order_release );
+		}
+
 		// -----------------------------------------------------------------------
 
 		std::atomic<int64_t> time{ 0 };
 		double               mSampleRate = 44100.0;
-		float                bpm         = 90.0f;
+		int               mBlockSize  = 124;
+		std::atomic<float>   bpm{ 90.0f };
 
 		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR( p_loops )
 	};
 
 } // namespace plop::p_loops
 
-#endif // PLOP_SRC_PROCSSOR_PERIODIC_LOOPS_HPP
+#endif // PLOP_SRC_PROCESSOR_PERIODIC_LOOPS_HPP

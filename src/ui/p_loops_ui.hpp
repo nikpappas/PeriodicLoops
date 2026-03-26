@@ -8,6 +8,7 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 
 #include "processor/periodic_loops.hpp"
+#include "ui/cc_list_panel.hpp"
 #include "ui/note_list_panel.hpp"
 #include "ui/orbital_display.hpp"
 #include "ui/time_display.hpp"
@@ -23,6 +24,9 @@ namespace plop::ui {
 		TimeDisplay               m_time_display;
 		OrbitalDisplay            m_orbital_display;
 		NoteListPanel             m_note_list_panel;
+		CcListPanel               m_cc_list_panel;
+		::juce::Viewport          m_note_viewport;
+		::juce::Viewport          m_cc_viewport;
 		int64_t                   m_last_time = 0;
 
 		std::vector<::juce::Colour>                            m_note_colours;
@@ -101,7 +105,13 @@ namespace plop::ui {
 
 			m_note_list_panel.setNotes( { notes.begin(), notes.end() } );
 			m_note_list_panel.setColours( m_note_colours );
+			m_note_list_panel.setSize( m_note_viewport.getWidth(), m_note_list_panel.getContentHeight() );
 			m_note_list_panel.repaint();
+
+			const auto &ccs = m_plugin_instance_ref.getCCs();
+			m_cc_list_panel.setCCs( { ccs.begin(), ccs.end() } );
+			m_cc_list_panel.setSize( m_cc_viewport.getWidth(), m_cc_list_panel.getContentHeight() );
+			m_cc_list_panel.repaint();
 
 			m_time_display.setTime( currentTime );
 			m_time_display.repaint();
@@ -136,10 +146,24 @@ namespace plop::ui {
 				m_note_colours.erase( m_note_colours.begin() + index );
 		};
 
+		m_cc_list_panel.onAddCc = [ this ] {
+			constexpr PeriodicCC defaultCc{ .number = 1, .period = 1.0f, .offset = 0.0f, .channel = 0 };
+			m_plugin_instance_ref.addCc( defaultCc );
+		};
+
+		m_cc_list_panel.onCcChanged = [ this ]( int index, PeriodicCC cc ) {
+			m_plugin_instance_ref.updateCc( index, cc );
+		};
+
+		m_cc_list_panel.onRemoveCc = [ this ]( int index ) {
+			m_plugin_instance_ref.removeCc( index );
+		};
+
 		setSize( 800, 600 );
 
-		constexpr int panel_w = 240;
-		constexpr int top_h   = 50;
+		constexpr int panel_w  = 240;
+		constexpr int top_h    = 50;
+		constexpr int half_h   = ( 600 - top_h ) / 2;
 
 		addAndMakeVisible( m_time_display );
 		m_time_display.setBounds( 10, 10, 200, 30 );
@@ -147,8 +171,18 @@ namespace plop::ui {
 		addAndMakeVisible( m_orbital_display );
 		m_orbital_display.setBounds( 0, top_h, 800 - panel_w, 600 - top_h );
 
-		addAndMakeVisible( m_note_list_panel );
-		m_note_list_panel.setBounds( 800 - panel_w, top_h, panel_w, 600 - top_h );
+		m_note_list_panel.setShowChannel( owner.wrapperType == ::juce::AudioProcessor::wrapperType_Standalone );
+		m_note_list_panel.setSize( panel_w, m_note_list_panel.getContentHeight() );
+		m_note_viewport.setViewedComponent( &m_note_list_panel, false );
+		m_note_viewport.setScrollBarsShown( true, false );
+		addAndMakeVisible( m_note_viewport );
+		m_note_viewport.setBounds( 800 - panel_w, top_h, panel_w, half_h );
+
+		m_cc_list_panel.setSize( panel_w, m_cc_list_panel.getContentHeight() );
+		m_cc_viewport.setViewedComponent( &m_cc_list_panel, false );
+		m_cc_viewport.setScrollBarsShown( true, false );
+		addAndMakeVisible( m_cc_viewport );
+		m_cc_viewport.setBounds( 800 - panel_w, top_h + half_h, panel_w, 600 - top_h - half_h );
 
 		setResizable( false, false );
 		startTimerHz( 30 );

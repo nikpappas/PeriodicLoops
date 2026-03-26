@@ -24,9 +24,12 @@ using ::std::clamp;
 using ::std::initializer_list;
 using ::std::make_shared;
 using ::std::memory_order_acquire;
+using ::std::min;
 using ::std::string;
 using ::std::to_string;
 using ::std::vector;
+
+using ::plop::utils::beatsToSamples;
 
 namespace ranges = ::std::ranges;
 
@@ -63,6 +66,12 @@ p_loops::p_loops() : AudioProcessor( p_loops::get_midifx_bus_layout() ) {
 			} )
 		addNote( note );
 
+	for ( const PeriodicCC &cc : initializer_list<PeriodicCC>{
+			  { .number = 32, .period = 4.0f, .offset = 0.1f, .channel = 0 },
+			  { .number = 42, .period = 4.0f, .offset = 0.1f, .channel = 0 },
+			} )
+		addCc( cc );
+
 	pl_info( "Plugin Started" );
 }
 
@@ -88,8 +97,9 @@ bool p_loops::isBusesLayoutSupported( const BusesLayout &layouts ) const {
 	return true;
 }
 
-void p_loops::prepareToPlay( double sampleRate, [[maybe_unused]] int block_size ) {
+void p_loops::prepareToPlay( double sampleRate, int blockSize ) {
 	mSampleRate = sampleRate;
+	mBlockSize  = blockSize;
 	time        = 0;
 }
 
@@ -102,6 +112,37 @@ void p_loops::addNote( const PeriodicNote &note ) {
 			buf.notes[ buf.count++ ] = note;
 	} );
 	m_ui_notes.push_back( note );
+}
+
+void p_loops::addCc( const PeriodicCC &cc ) {
+	swapCCBuffer( [ & ]( CCBuffer &buf ) {
+		if ( buf.count < MAX_NOTES )
+			buf.cc[ buf.count++ ] = cc;
+	} );
+	m_ui_ccs.push_back( cc );
+}
+
+void p_loops::removeCc( int index ) {
+	if ( index < 0 || index >= static_cast<int>( m_ui_ccs.size() ) )
+		return;
+	swapCCBuffer( [ index ]( CCBuffer &buf ) {
+		if ( index < buf.count ) {
+			for ( int i = index; i < buf.count - 1; ++i )
+				buf.cc[ i ] = buf.cc[ i + 1 ];
+			--buf.count;
+		}
+	} );
+	m_ui_ccs.erase( m_ui_ccs.begin() + index );
+}
+
+void p_loops::updateCc( int index, const PeriodicCC &cc ) {
+	if ( index < 0 || index >= static_cast<int>( m_ui_ccs.size() ) )
+		return;
+	swapCCBuffer( [ index, &cc ]( CCBuffer &buf ) {
+		if ( index < buf.count )
+			buf.cc[ index ] = cc;
+	} );
+	m_ui_ccs[ index ] = cc;
 }
 
 void p_loops::removeNote( int index ) {
@@ -137,25 +178,30 @@ void p_loops::processBlock( AudioBuffer<float> &buffer, MidiBuffer &midi ) {
 	midi.clear();
 
 	const auto        numSamples = buffer.getNumSamples();
-	const NoteBuffer &noteBuf    = m_note_buf[ m_active_buf.load( memory_order_acquire ) ];
+	const NoteBuffer &noteBuf    = mNoteBuf[ mActiveNoteBuf.load( memory_order_acquire ) ];
 
 	if ( noteBuf.count == 0 ) {
 		time += numSamples;
 		return;
 	}
 
-	// Get BPM from host transport if available
+	// Derive blockStartBeat from host playhead when available, fall back to sample counter
+	float ppqPosition = -1.0f;
 	if ( auto *playH = getPlayHead() ) {
 		juce::AudioPlayHead::CurrentPositionInfo posInfo;
 		if ( playH->getCurrentPosition( posInfo ) ) {
-			bpm = static_cast<float>( posInfo.bpm );
+			bpm.store( static_cast<float>( posInfo.bpm ) );
+			if ( posInfo.isPlaying )
+				ppqPosition = static_cast<float>( posInfo.ppqPosition );
 		}
 	}
 
-	const float   samplesPerBeat = static_cast<float>( mSampleRate ) * 60.0f / bpm;
-	const int64_t timeSnapshot   = time.load();
-	const float   blockStartBeat = static_cast<float>( timeSnapshot ) / samplesPerBeat;
-	const float   blockEndBeat   = static_cast<float>( timeSnapshot + numSamples ) / samplesPerBeat;
+	const float samplesPerBeat = static_cast<float>( mSampleRate ) * 60.0f / bpm.load();
+	const float blockStartBeat = ppqPosition >= 0.0f ? ppqPosition : static_cast<float>( time.load() ) / samplesPerBeat;
+	const float blockEndBeat   = blockStartBeat + static_cast<float>( numSamples ) / samplesPerBeat;
+
+	if ( ppqPosition >= 0.0f )
+		time.store( static_cast<int64_t>( blockStartBeat * samplesPerBeat ) );
 
 	// NoteOff pass — must come before NoteOn so same-sample ordering is correct
 	for ( int ni = 0; ni < noteBuf.count; ++ni ) {
@@ -199,6 +245,29 @@ void p_loops::processBlock( AudioBuffer<float> &buffer, MidiBuffer &midi ) {
 		}
 	}
 
+	const int ccSamplingStep = static_cast<int>( mSampleRate / 100.0 ); // 100 Hz max
+
+	const CCBuffer &ccBuf = mCcBuf[ mActiveCcBuf.load( memory_order_acquire ) ];
+	// CC pass
+	if ( ccBuf.count > 0 ) {
+		for ( int i = 0; i < numSamples; i += ccSamplingStep ) {
+			for ( int ni = 0; ni < ccBuf.count; ++ni ) {
+				const auto &cc = ccBuf.cc[ ni ];
+				if ( cc.period <= 0.0f ) {
+					continue;
+				}
+
+				midi.addEvent(
+				  MidiMessage::controllerEvent(
+					 cc.channel + 1,
+					 cc.number,
+					 static_cast<int>(
+						127.0f * ( 0.5f + 0.5f * sin( 2 * 3.14 * ( time + i + cc.offset * samplesPerBeat ) / ( cc.period * samplesPerBeat ) ) ) ) ),
+				  time + i );
+			}
+		}
+	}
+
 	time += numSamples;
 }
 
@@ -207,11 +276,76 @@ void p_loops::processBlock( AudioBuffer<double> &, MidiBuffer & ) {
 }
 
 void p_loops::getStateInformation( MemoryBlock &destData ) {
-	pl_debug( "getStateInformation" );
+	juce::XmlElement root( "PeriodicLoopState" );
+
+	auto *notesEl = root.createNewChildElement( "Notes" );
+	for ( const auto &note : m_ui_notes ) {
+		auto *el = notesEl->createNewChildElement( "Note" );
+		el->setAttribute( "pitch", note.pitch );
+		el->setAttribute( "period", note.period );
+		el->setAttribute( "offset", note.offset );
+		el->setAttribute( "duration", note.duration );
+		el->setAttribute( "channel", note.channel );
+	}
+
+	auto *ccsEl = root.createNewChildElement( "CCs" );
+	for ( const auto &cc : m_ui_ccs ) {
+		auto *el = ccsEl->createNewChildElement( "CC" );
+		el->setAttribute( "number", cc.number );
+		el->setAttribute( "period", cc.period );
+		el->setAttribute( "offset", cc.offset );
+		el->setAttribute( "channel", cc.channel );
+	}
+
+	copyXmlToBinary( root, destData );
+	pl_debug( "getStateInformation: saved " + to_string( m_ui_notes.size() ) + " notes, " + to_string( m_ui_ccs.size() ) + " CCs" );
 }
 
 void p_loops::setStateInformation( const void *data, int sizeInBytes ) {
-	pl_debug( "setStateInformation" );
+	auto xml = getXmlFromBinary( data, sizeInBytes );
+	if ( !xml || xml->getTagName() != "PeriodicLoopState" ) {
+		pl_error( "setStateInformation: invalid or missing state XML" );
+		return;
+	}
+
+	const auto *notesEl = xml->getChildByName( "Notes" );
+	if ( !notesEl ) {
+		pl_error( "setStateInformation: missing Notes element" );
+		return;
+	}
+
+	// Clear existing notes
+	while ( !m_ui_notes.empty() )
+		removeNote( 0 );
+
+	for ( const auto *el : notesEl->getChildIterator() ) {
+		PeriodicNote note{
+			.pitch    = el->getIntAttribute( "pitch", 60 ),
+			.period   = static_cast<float>( el->getDoubleAttribute( "period", 1.0 ) ),
+			.offset   = static_cast<float>( el->getDoubleAttribute( "offset", 0.0 ) ),
+			.duration = static_cast<float>( el->getDoubleAttribute( "duration", 0.5 ) ),
+			.channel  = el->getIntAttribute( "channel", 0 ),
+		};
+		addNote( note );
+	}
+
+	// Clear existing CCs
+	while ( !m_ui_ccs.empty() )
+		removeCc( 0 );
+
+	if ( const auto *ccsEl = xml->getChildByName( "CCs" ) ) {
+		for ( const auto *el : ccsEl->getChildIterator() ) {
+			PeriodicCC cc{
+				.number  = el->getIntAttribute( "number", 1 ),
+				.period  = static_cast<float>( el->getDoubleAttribute( "period", 1.0 ) ),
+				.offset  = static_cast<float>( el->getDoubleAttribute( "offset", 0.0 ) ),
+				.channel = el->getIntAttribute( "channel", 0 ),
+			};
+			addCc( cc );
+		}
+	}
+
+	pl_debug( "setStateInformation: loaded " + to_string( m_ui_notes.size() ) + " notes, " + to_string( m_ui_ccs.size() ) + " CCs" );
 }
 
 File p_loops::log_file() {

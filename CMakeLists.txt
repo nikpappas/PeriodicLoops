@@ -35,8 +35,6 @@ endfunction()
 function(np_add_compiler_warnings target)
 
 	if ( NOT MSVC )
-
-		# `-Wno-deprecated-declarations` currently required for av_buffersink_params_alloc() in AVBufferSinkParamsWrapper.cpp
 		target_compile_options( ${target} PRIVATE
 			-ftabstop=2
 			-pedantic
@@ -90,15 +88,6 @@ endif()
 
 # Add the local modules directory to pick up local Find-module files
 list( APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules")
-
-# See cmake/README.md for help on finding dependencies
-#
-# For useful information on getting CMake to work with Boost, type the following command: `cmake --help-module FindBoost`
-# or add `SET( Boost_DEBUG "ON" )` to this file to get helpful debug information when running CMake
-# find_package( Boost   1.83   REQUIRED exception )
-# find_package( Catch2  2.13.4 REQUIRED           )
-# find_package( fmt     7.1.3  REQUIRED           )
-# find_package( spdlog  1.8.5  REQUIRED           )
 
 find_package( JUCE    CONFIG REQUIRED           )
 

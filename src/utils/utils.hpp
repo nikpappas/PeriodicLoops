@@ -54,6 +54,10 @@ namespace plop::utils {
 		return beats / ( bpm * 60 );
 	}
 
+	constexpr float beatsToSamples( const float &bpm, const float &beats, const float &sr ) {
+		return beatsToSeconds( bpm, beats ) * sr;
+	}
+
 	constexpr float secondsToBeats( const float &bpm, const float &seconds ) {
 		return ( bpm * 60 ) / seconds;
 	}

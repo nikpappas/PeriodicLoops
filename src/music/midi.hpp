@@ -7,7 +7,7 @@ struct PeriodicNote {
 	/// @brief  in beats
 	float period;
 	/// @brief  in beats
-   	float offset;
+	float offset;
 	/// @brief  in beats
 
 	float duration;
@@ -15,12 +15,15 @@ struct PeriodicNote {
 	int channel;
 };
 
-inline bool operator<( const PeriodicNote &a, const PeriodicNote &b ) {
-	return a.pitch < b.pitch;
-}
-
-inline bool operator==( const PeriodicNote &a, const PeriodicNote &b ) {
-	return a.pitch == b.pitch && a.period == b.period && a.duration == b.duration;
-}
+struct PeriodicCC {
+	/// @brief  [0,127]
+	int number;
+	/// @brief  in beats
+	float period;
+	/// @brief  in beats
+	float offset;
+	/// @brief  [0,15]
+	int channel;
+};
 
 #endif // PLOP_SRC_MUSIC_MIDI_HPP

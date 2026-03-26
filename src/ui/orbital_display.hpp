@@ -17,11 +17,11 @@ namespace plop::ui {
 		};
 
 		void setVoices( std::vector<VoiceState> voices ) {
-			mTrigger.resize( voices.size(), 0 );
+			if ( voices.size() != m_voices.size() )
+				mTrigger.assign( voices.size(), 0 );
 			for ( int i = 0; i < static_cast<int>( voices.size() ); ++i ) {
-				if ( voices[ i ].triggered ) {
+				if ( voices[ i ].triggered )
 					mTrigger[ i ] = k_flash_frames;
-				}
 			}
 			m_voices = std::move( voices );
 		}
