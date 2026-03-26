@@ -97,9 +97,9 @@ bool p_loops::isBusesLayoutSupported( const BusesLayout &layouts ) const {
 	return true;
 }
 
-void p_loops::prepareToPlay( double sampleRate, int blockSize ) {
+void p_loops::prepareToPlay( double sampleRate, int prmBlockSize ) {
 	mSampleRate = sampleRate;
-	mBlockSize  = blockSize;
+	mBlockSize  = prmBlockSize;
 	time        = 0;
 }
 
@@ -190,12 +190,12 @@ void p_loops::processBlock( AudioBuffer<float> &buffer, MidiBuffer &midi ) {
 	if ( auto *playH = getPlayHead() ) {
 		auto posInfo = playH->getPosition();
 		if ( posInfo.hasValue() ) {
+			if ( posInfo->getBpm().hasValue() ) {
+				bpm.store( static_cast<float>( *posInfo->getBpm() ) );
+			}
 			// If it's a plugin only produce midi when the playhead is playing
 			if ( !posInfo->getIsPlaying() && wrapperType != wrapperType_Standalone ) {
 				return;
-			}
-			if ( posInfo->getBpm().hasValue() ) {
-				bpm.store( static_cast<float>( *posInfo->getBpm() ) );
 			}
 			if ( posInfo->getIsPlaying() && posInfo->getPpqPosition().hasValue() ) {
 				ppqPosition = static_cast<float>( *posInfo->getPpqPosition() );

@@ -182,7 +182,7 @@ namespace plop::p_loops {
 		std::atomic<int64_t> time{ 0 };
 		double               mSampleRate = 44100.0;
 		int               mBlockSize  = 124;
-		std::atomic<float>   bpm{ 90.0f };
+		std::atomic<float>   bpm{ 120.0f };
 
 		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR( p_loops )
 	};
