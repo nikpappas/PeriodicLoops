@@ -188,14 +188,18 @@ void p_loops::processBlock( AudioBuffer<float> &buffer, MidiBuffer &midi ) {
 	// Derive blockStartBeat from host playhead when available, fall back to sample counter
 	float ppqPosition = -1.0f;
 	if ( auto *playH = getPlayHead() ) {
-		juce::AudioPlayHead::CurrentPositionInfo posInfo;
-		if ( !posInfo.isPlaying && wrapperType != wrapperType_Standalone ) {
-			return;
-		}
-		if ( playH->getCurrentPosition( posInfo ) ) {
-			bpm.store( static_cast<float>( posInfo.bpm ) );
-			if ( posInfo.isPlaying )
-				ppqPosition = static_cast<float>( posInfo.ppqPosition );
+		auto posInfo = playH->getPosition();
+		if ( posInfo.hasValue() ) {
+			// If it's a plugin only produce midi when the playhead is playing
+			if ( !posInfo->getIsPlaying() && wrapperType != wrapperType_Standalone ) {
+				return;
+			}
+			if ( posInfo->getBpm().hasValue() ) {
+				bpm.store( static_cast<float>( *posInfo->getBpm() ) );
+			}
+			if ( posInfo->getIsPlaying() && posInfo->getPpqPosition().hasValue() ) {
+				ppqPosition = static_cast<float>( *posInfo->getPpqPosition() );
+			}
 		}
 	}
 

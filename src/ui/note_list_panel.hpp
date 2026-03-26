@@ -6,6 +6,7 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+#include "music/drums.hpp"
 #include "music/midi.hpp"
 
 namespace plop::ui {
@@ -19,6 +20,8 @@ namespace plop::ui {
 
 	class NoteListPanel : public ::juce::Component {
 	 public:
+		enum class Mode { Pro, Melody, Drums };
+
 		std::function<void( int, ::juce::Rectangle<int> )> onColourSwatchClicked;
 		std::function<void( int )>                         onRemoveNote;
 		std::function<void()>                              onAddNote;
@@ -50,6 +53,12 @@ namespace plop::ui {
 			mRows.setShowChannel( show );
 		}
 
+		void setMode( Mode mode ) {
+			mMode = mode;
+			mRows.setMode( mode );
+			repaint();
+		}
+
 		void paint( ::juce::Graphics &g ) override {
 			g.fillAll( ::juce::Colour( 0xff12121f ) );
 
@@ -62,12 +71,12 @@ namespace plop::ui {
 			g.setColour( ::juce::Colour( 0xff888899 ) );
 			g.setFont( 11.0f );
 			const int y_cols = k_header_h + 4;
-			g.drawText( "Colour", k_padding,       y_cols, 18, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Pitch",  k_padding + 30,  y_cols, 40, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Period", k_padding + 75,  y_cols, 55, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Offset", k_padding + 135, y_cols, mRows.showChannel() ? 45 : 65, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Colour",                                       k_padding,        y_cols, 18, 20, ::juce::Justification::centredLeft );
+			g.drawText( mMode == Mode::Drums ? "Drum" : "Pitch",        k_padding + 22,   y_cols, 65, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Period",                                        k_padding + 91,   y_cols, 46, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Offset",                                        k_padding + 141,  y_cols, mRows.showChannel() ? 40 : 64, 20, ::juce::Justification::centredLeft );
 			if ( mRows.showChannel() )
-				g.drawText( "Ch", k_padding + 182, y_cols, 22, 20, ::juce::Justification::centredLeft );
+				g.drawText( "Ch", k_padding + 185, y_cols, 22, 20, ::juce::Justification::centredLeft );
 
 			g.setColour( ::juce::Colour( 0xff333344 ) );
 			g.drawHorizontalLine( k_total_header_h - 2, 0.0f, static_cast<float>( getWidth() ) );
@@ -82,6 +91,8 @@ namespace plop::ui {
 		static constexpr int k_padding          = 8;
 		static constexpr int k_header_h         = 30;
 		static constexpr int k_total_header_h   = k_header_h + 4 + 22; // 56
+
+		Mode mMode = Mode::Melody;
 
 		void syncRowsSize() {
 			if ( mViewport.getWidth() > 0 )
@@ -111,6 +122,8 @@ namespace plop::ui {
 			void setColours( std::vector<::juce::Colour> c ) { mColours = std::move( c ); }
 			void setShowChannel( bool show ) { mShowChannel = show; }
 			bool showChannel() const { return mShowChannel; }
+			void setMode( Mode m ) { mMode = m; }
+			Mode mode() const { return mMode; }
 
 			int getContentHeight() const {
 				return static_cast<int>( mNotes.size() ) * row_h + 6 + 22 + 8;
@@ -134,7 +147,7 @@ namespace plop::ui {
 					g.drawRoundedRectangle( sb.toFloat(), 3.0f, 1.0f );
 
 					g.setColour( ::juce::Colours::white );
-					drawCell( g, midiPitchToName( note.pitch ),             pitchRect( i ),   i == mEditingIndex && mEditingField == Field::Pitch );
+					drawCell( g, pitchLabel( note.pitch ),              pitchRect( i ),   i == mEditingIndex && mEditingField == Field::Pitch );
 					drawCell( g, ::juce::String( note.period, 2 ) + " b", periodRect( i ),  i == mEditingIndex && mEditingField == Field::Period );
 					drawCell( g, ::juce::String( note.offset, 2 ) + " b", offsetRect( i ),  i == mEditingIndex && mEditingField == Field::Offset );
 					if ( mShowChannel )
@@ -170,7 +183,7 @@ namespace plop::ui {
 					if ( pitchRect( i ).contains( pos ) )                          f = Field::Pitch;
 					else if ( periodRect( i ).contains( pos ) )                    f = Field::Period;
 					else if ( offsetRect( i ).contains( pos ) )                    f = Field::Offset;
-					else if ( mShowChannel && channelRect( i ).contains( pos ) ) f = Field::Channel;
+					else if ( mShowChannel && channelRect( i ).contains( pos ) )   f = Field::Channel;
 
 					if ( f != Field::None ) {
 						mDragIndex      = i;
@@ -191,14 +204,21 @@ namespace plop::ui {
 				const int dy = mDragStartY - e.getPosition().y; // up = positive = increase
 
 				PeriodicNote updated = mDragStartNote;
-				if ( mDragField == Field::Pitch )
-					updated.pitch = ::juce::jlimit( 0, 127, mDragStartNote.pitch + dy / 3 );
-				else if ( mDragField == Field::Period )
+				if ( mDragField == Field::Pitch ) {
+					if ( mMode == Mode::Drums ) {
+						const int startIdx = music::gmDrumIndexForNote( mDragStartNote.pitch );
+						const int newIdx   = ::juce::jlimit( 0, static_cast<int>( music::k_gmDrums.size() ) - 1, startIdx + dy / 4 );
+						updated.pitch      = music::gmDrumNoteAtIndex( newIdx );
+					} else {
+						updated.pitch = ::juce::jlimit( 0, 127, mDragStartNote.pitch + dy / 3 );
+					}
+				} else if ( mDragField == Field::Period ) {
 					updated.period = ::juce::jmax( 0.01f, mDragStartNote.period + dy * 0.05f );
-				else if ( mDragField == Field::Offset )
+				} else if ( mDragField == Field::Offset ) {
 					updated.offset = ::juce::jlimit( 0.0f, updated.period, mDragStartNote.offset + dy * 0.05f );
-				else
+				} else {
 					updated.channel = ::juce::jlimit( 0, 15, mDragStartNote.channel + dy / 8 );
+				}
 
 				mNotes[ mDragIndex ] = updated;
 				if ( onNoteChanged ) onNoteChanged( mDragIndex, updated );
@@ -234,6 +254,7 @@ namespace plop::ui {
 			int                         mEditingIndex = -1;
 			Field                       mEditingField = Field::None;
 			bool                        mShowChannel  = false;
+			Mode                        mMode         = Mode::Melody;
 
 			int          mDragIndex      = -1;
 			Field        mDragField      = Field::None;
@@ -243,18 +264,28 @@ namespace plop::ui {
 			::juce::Rectangle<int> swatchRect( int i ) const {
 				return { k_padding, i * row_h + ( row_h - swatch_h ) / 2, swatch_w, swatch_h };
 			}
-			::juce::Rectangle<int> pitchRect( int i ) const { return { k_padding + 30, i * row_h, 40, row_h }; }
-			::juce::Rectangle<int> periodRect( int i ) const { return { k_padding + 75, i * row_h, 55, row_h }; }
+			::juce::Rectangle<int> pitchRect( int i ) const  { return { k_padding + 22,  i * row_h, 65, row_h }; }
+			::juce::Rectangle<int> periodRect( int i ) const { return { k_padding + 91,  i * row_h, 46, row_h }; }
 			::juce::Rectangle<int> offsetRect( int i ) const {
-				return { k_padding + 135, i * row_h, mShowChannel ? 45 : 65, row_h };
+				return { k_padding + 141, i * row_h, mShowChannel ? 40 : 64, row_h };
 			}
-			::juce::Rectangle<int> channelRect( int i ) const { return { k_padding + 182, i * row_h, 22, row_h }; }
+			::juce::Rectangle<int> channelRect( int i ) const { return { k_padding + 185, i * row_h, 22, row_h }; }
 			::juce::Rectangle<int> removeRect( int i ) const {
 				return { getWidth() - k_padding - 16, i * row_h + ( row_h - 16 ) / 2, 16, 16 };
 			}
 
 			::juce::Colour colourFor( int i ) const {
 				return i < static_cast<int>( mColours.size() ) ? mColours[ i ] : ::juce::Colours::grey;
+			}
+
+			::juce::String pitchLabel( int pitch ) const {
+				if ( mMode == Mode::Drums ) {
+					const char *name = music::gmDrumName( pitch );
+					return name ? ::juce::String( name ) : ::juce::String( pitch );
+				}
+				if ( mMode == Mode::Pro )
+					return ::juce::String( pitch );
+				return midiPitchToName( pitch );
 			}
 
 			void drawCell( ::juce::Graphics &g, const ::juce::String &text,

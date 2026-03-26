@@ -27,6 +27,11 @@ namespace plop::ui {
 		CcListPanel               mCcListPanel;
 		int64_t                   mLastTime = 0;
 
+		::juce::TextButton mBtnPro    { "Pro"    };
+		::juce::TextButton mBtnMelody { "Melody" };
+		::juce::TextButton mBtnDrums  { "Drums"  };
+		NoteListPanel::Mode mMode = NoteListPanel::Mode::Melody;
+
 		std::vector<::juce::Colour>                            mNoteColours;
 		::juce::Component::SafePointer<::juce::ColourSelector> mActiveSelector;
 		int                                                    mEditingIndex = -1;
@@ -45,6 +50,14 @@ namespace plop::ui {
 				::juce::Colour( 0xffec407a ), ::juce::Colour( 0xff8d6e63 ),
 			};
 			return palette[ mNoteColours.size() % std::size( palette ) ];
+		}
+
+		void applyMode( NoteListPanel::Mode mode ) {
+			mMode = mode;
+			mNoteListPanel.setMode( mode );
+			mBtnPro.setToggleState(    mode == NoteListPanel::Mode::Pro,    ::juce::dontSendNotification );
+			mBtnMelody.setToggleState( mode == NoteListPanel::Mode::Melody, ::juce::dontSendNotification );
+			mBtnDrums.setToggleState(  mode == NoteListPanel::Mode::Drums,  ::juce::dontSendNotification );
 		}
 
 		void changeListenerCallback( ::juce::ChangeBroadcaster *source ) override {
@@ -73,11 +86,20 @@ namespace plop::ui {
 		}
 
 		void resized() override {
-			constexpr int panel_w = 240;
-			constexpr int top_h   = 50;
-			const int     w       = getWidth();
-			const int     h       = getHeight();
-			const int     half_h  = ( h - top_h ) / 2;
+			constexpr int panel_w  = 240;
+			constexpr int top_h    = 50;
+			constexpr int btn_y    = 10;
+			constexpr int btn_h    = 30;
+			constexpr int btn_w    = 60;
+			constexpr int btn_gap  = 4;
+			constexpr int btns_x   = 220;
+			const int     w        = getWidth();
+			const int     h        = getHeight();
+			const int     half_h   = ( h - top_h ) / 2;
+
+			mBtnPro.setBounds(    btns_x,                        btn_y, btn_w, btn_h );
+			mBtnMelody.setBounds( btns_x + btn_w + btn_gap,      btn_y, btn_w, btn_h );
+			mBtnDrums.setBounds(  btns_x + 2 * ( btn_w + btn_gap ), btn_y, btn_w, btn_h );
 
 			mOrbitalDisplay.setBounds( 0, top_h, w - panel_w, h - top_h );
 			mNoteListPanel.setBounds( w - panel_w, top_h, panel_w, half_h );
@@ -136,12 +158,28 @@ namespace plop::ui {
 		for ( size_t i = 0; i < owner.getNotes().size(); ++i )
 			mNoteColours.push_back( nextPaletteColour() );
 
+		// Mode buttons
+		for ( auto *btn : { &mBtnPro, &mBtnMelody, &mBtnDrums } ) {
+			btn->setClickingTogglesState( false );
+			btn->setColour( ::juce::TextButton::buttonOnColourId, ::juce::Colour( 0xff4fc3f7 ) );
+			addAndMakeVisible( *btn );
+		}
+		mBtnPro.onClick    = [ this ] { applyMode( NoteListPanel::Mode::Pro );    };
+		mBtnMelody.onClick = [ this ] { applyMode( NoteListPanel::Mode::Melody ); };
+		mBtnDrums.onClick  = [ this ] { applyMode( NoteListPanel::Mode::Drums );  };
+		applyMode( NoteListPanel::Mode::Melody ); // set initial highlight
+
 		mNoteListPanel.onColourSwatchClicked = [ this ]( int index, ::juce::Rectangle<int> screenBounds ) {
 			openColourPicker( index, screenBounds );
 		};
 
 		mNoteListPanel.onAddNote = [ this ] {
-			constexpr PeriodicNote defaultNote{ .pitch = 60, .period = 1.0f, .offset = 0.0f, .duration = 0.5f, .channel = 0 };
+			const bool isDrums = ( mMode == NoteListPanel::Mode::Drums );
+			PeriodicNote defaultNote{ .pitch    = isDrums ? 36 : 60,
+			                          .period   = 1.0f,
+			                          .offset   = 0.0f,
+			                          .duration = 0.5f,
+			                          .channel  = isDrums ? 9 : 0 };
 			mPluginInstanceRef.addNote( defaultNote );
 			mNoteColours.push_back( nextPaletteColour() );
 		};
