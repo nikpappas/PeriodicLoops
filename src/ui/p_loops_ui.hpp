@@ -7,6 +7,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_extra/juce_gui_extra.h>
 
+#include "music/scales.hpp"
 #include "processor/periodic_loops.hpp"
 #include "ui/cc_display.hpp"
 #include "ui/cc_list_panel.hpp"
@@ -14,6 +15,7 @@
 #include "ui/note_list_panel.hpp"
 #include "ui/orbital_display.hpp"
 #include "ui/pattern_picker.hpp"
+#include "ui/settings_panel.hpp"
 #include "ui/time_display.hpp"
 
 namespace plop::ui {
@@ -31,13 +33,10 @@ namespace plop::ui {
 		CcDisplay                 mCcDisplay;
 		MidiExportButton          mMidiExportButton;
 		PatternPicker             mPatternPicker;
+		SettingsPanel             mSettingsPanel;
 		int64_t                   mLastTime    = 0;
 		int                       mLastCcCount = -1;
 
-		::juce::TextButton  mBtnPro{ "Pro" };
-		::juce::TextButton  mBtnMelody{ "Melody" };
-		::juce::TextButton  mBtnDrums{ "Drums" };
-		::juce::TextButton  mBtnSilica{ "Silica" };
 		NoteListPanel::Mode mMode = NoteListPanel::Mode::Melody;
 
 		std::vector<::juce::Colour>                            mNoteColours;
@@ -63,15 +62,15 @@ namespace plop::ui {
 		void applyMode( NoteListPanel::Mode mode ) {
 			const bool wasSilica = ( mMode == NoteListPanel::Mode::Silica );
 			const bool isSilica  = ( mode == NoteListPanel::Mode::Silica );
-			mMode = mode;
+			mMode                = mode;
 			mNoteListPanel.setMode( mode );
-			mBtnPro.setToggleState(    mode == NoteListPanel::Mode::Pro,    ::juce::dontSendNotification );
-			mBtnMelody.setToggleState( mode == NoteListPanel::Mode::Melody, ::juce::dontSendNotification );
-			mBtnDrums.setToggleState(  mode == NoteListPanel::Mode::Drums,  ::juce::dontSendNotification );
-			mBtnSilica.setToggleState( isSilica,                            ::juce::dontSendNotification );
+			mSettingsPanel.setMode( mode );
+			mPluginInstanceRef.setMode( static_cast<int>( mode ) );
 
 			if ( isSilica != wasSilica )
 				mPluginInstanceRef.setSilicaMode( isSilica );
+
+			resized(); // settings panel height may change per mode
 		}
 
 		void changeListenerCallback( ::juce::ChangeBroadcaster *source ) override {
@@ -97,35 +96,36 @@ namespace plop::ui {
 		}
 
 		void resized() override {
-			constexpr int panel_w  = 240;
-			constexpr int top_h    = 50;
-			constexpr int btn_y    = 10;
-			constexpr int btn_h    = 30;
-			constexpr int btn_w    = 60;
-			constexpr int btn_gap  = 4;
-			constexpr int btns_x   = 220;
-			const int     w        = getWidth();
-			const int     h        = getHeight();
-			const int     half_h   = ( h - top_h ) / 2;
+			constexpr int panelW = 320;
+			constexpr int top_h  = 50;
+			constexpr int btn_y  = 10;
+			constexpr int btn_h  = 30;
+			const int     w      = getWidth();
+			const int     h      = getHeight();
 
-			mBtnPro.setBounds(    btns_x,                           btn_y, btn_w, btn_h );
-			mBtnMelody.setBounds( btns_x + btn_w + btn_gap,         btn_y, btn_w, btn_h );
-			mBtnDrums.setBounds(  btns_x + 2 * ( btn_w + btn_gap ), btn_y, btn_w, btn_h );
-			mBtnSilica.setBounds( btns_x + 3 * ( btn_w + btn_gap ), btn_y, btn_w, btn_h );
+			// ---- Top bar ----
+			mTimeDisplay.setBounds( 10, btn_y, 200, btn_h );
 			mMidiExportButton.setBounds( w - 90, btn_y, 80, btn_h );
 
-			const int modeEnd     = mBtnSilica.getRight();
-			const int exportStart = w - 90;
-			mPatternPicker.setBounds( modeEnd + 8, btn_y, exportStart - modeEnd - 16, btn_h );
+			const int pickerX = 220;
+			const int pickerW = ( w - 90 ) - pickerX - 16;
+			mPatternPicker.setBounds( pickerX, btn_y, pickerW, btn_h );
 
+			// ---- Left side: orbital + cc display ----
 			const int ccDisplayH = mCcDisplay.getPreferredHeight();
 			const int orbitalH   = ::juce::jmax( 0, h - top_h - ccDisplayH );
-			mOrbitalDisplay.setBounds( 0, top_h, w - panel_w, orbitalH );
-			mCcDisplay.setBounds( 0, top_h + orbitalH, w - panel_w, ccDisplayH );
-			const int ccPanelH  = mCcListPanel.isCollapsed() ? mCcListPanel.getCollapsedHeight() : ( h - top_h ) / 2;
-			const int notePanelH = h - top_h - ccPanelH;
-			mNoteListPanel.setBounds( w - panel_w, top_h, panel_w, notePanelH );
-			mCcListPanel.setBounds(   w - panel_w, top_h + notePanelH, panel_w, ccPanelH );
+			mOrbitalDisplay.setBounds( 0, top_h, w - panelW, orbitalH );
+			mCcDisplay.setBounds( 0, top_h + orbitalH, w - panelW, ccDisplayH );
+
+			// ---- Right column: settings / notes / cc ----
+			const int settingsH = mSettingsPanel.getPreferredHeight();
+			const int rightY    = top_h;
+			mSettingsPanel.setBounds( w - panelW, rightY, panelW, settingsH );
+
+			const int ccPanelH = mCcListPanel.isCollapsed() ? mCcListPanel.getCollapsedHeight() : ( h - rightY - settingsH ) / 2;
+			const int notePanelH = h - rightY - settingsH - ccPanelH;
+			mNoteListPanel.setBounds( w - panelW, rightY + settingsH, panelW, notePanelH );
+			mCcListPanel.setBounds( w - panelW, rightY + settingsH + notePanelH, panelW, ccPanelH );
 		}
 
 		void timerCallback() override {
@@ -169,7 +169,10 @@ namespace plop::ui {
 			mCcDisplay.setCurrentBeat( currentBeat );
 			mCcDisplay.setCCs( { ccs.begin(), ccs.end() } );
 			mCcDisplay.repaint();
-			if ( ccCount != mLastCcCount ) { mLastCcCount = ccCount; resized(); }
+			if ( ccCount != mLastCcCount ) {
+				mLastCcCount = ccCount;
+				resized();
+			}
 
 			mTimeDisplay.setTime( currentTime );
 			mTimeDisplay.repaint();
@@ -177,66 +180,106 @@ namespace plop::ui {
 		}
 	};
 
-	p_loops_ui::p_loops_ui( ::plop::p_loops::p_loops &owner )
-	    : ::juce::AudioProcessorEditor( owner )
-	    , mPluginInstanceRef( owner )
-	    , mNoteListPanel( {
-	          .onColourSwatchClicked = [ this ]( int i, ::juce::Rectangle<int> sb ) { openColourPicker( i, sb ); },
-	          .onRemoveNote          = [ this ]( int i ) {
-	              mPluginInstanceRef.removeNote( i );
-	              if ( i < static_cast<int>( mNoteColours.size() ) )
-	                  mNoteColours.erase( mNoteColours.begin() + i );
-	          },
-	          .onAddNote = [ this ] {
-	              const bool   isDrums  = ( mMode == NoteListPanel::Mode::Drums );
-	              const bool   isSilica = ( mMode == NoteListPanel::Mode::Silica );
-	              const float  period   = isSilica ? mPluginInstanceRef.getSilicaPeriod() : 1.0f;
-	              PeriodicNote note{ .pitch = isDrums ? 36 : 60, .period = period, .offset = 0.0f, .duration = 0.5f, .channel = isDrums ? 9 : 0 };
-	              mPluginInstanceRef.addNote( note );
-	              mNoteColours.push_back( nextPaletteColour() );
-	          },
-	          .onNoteChanged = [ this ]( int i, PeriodicNote n ) { mPluginInstanceRef.updateNote( i, n ); },
-	      } )
-	    , mCcListPanel( {
-	          .onRemoveCc  = [ this ]( int i ) { mPluginInstanceRef.removeCc( i ); },
-	          .onAddCc     = [ this ] {
-	              constexpr PeriodicCC defaultCc{ .number = 1, .period = 1.0f, .offset = 0.0f, .channel = 0 };
-	              mPluginInstanceRef.addCc( defaultCc );
-	          },
-	          .onCcChanged = [ this ]( int i, PeriodicCC cc ) { mPluginInstanceRef.updateCc( i, cc ); },
-	      }, [ this ] { resized(); } )
-	    , mMidiExportButton( [ this ] {
-	          return generateMidiExport( mPluginInstanceRef.getNotes(), mPluginInstanceRef.getCCs(), mPluginInstanceRef.getBpm() );
-	      } )
-	    , mPatternPicker( [ this ]( const std::vector<PeriodicNote> &notes, bool add ) {
-	          if ( !add ) {
-	              const int n = static_cast<int>( mPluginInstanceRef.getNotes().size() );
-	              for ( int i = n - 1; i >= 0; --i )
-	                  mPluginInstanceRef.removeNote( i );
-	              mNoteColours.clear();
-	          }
-	          for ( const auto &note : notes ) {
-	              mPluginInstanceRef.addNote( note );
-	              mNoteColours.push_back( nextPaletteColour() );
-	          }
-	      } ) {
+	p_loops_ui::p_loops_ui( ::plop::p_loops::p_loops &owner ) :
+			  ::juce::AudioProcessorEditor( owner ),
+			  mPluginInstanceRef( owner ),
+			  mNoteListPanel( {
+				 .onColourSwatchClicked = [ this ]( int i, ::juce::Rectangle<int> sb ) { openColourPicker( i, sb ); },
+				 .onRemoveNote =
+					[ this ]( int i ) {
+						mPluginInstanceRef.removeNote( i );
+						if ( i < static_cast<int>( mNoteColours.size() ) )
+							mNoteColours.erase( mNoteColours.begin() + i );
+					},
+				 .onAddNote =
+					[ this ] {
+						const bool  isDrums  = ( mMode == NoteListPanel::Mode::Drums );
+						const bool  isSilica = ( mMode == NoteListPanel::Mode::Silica );
+						const float period   = isSilica ? mPluginInstanceRef.getSilicaPeriod() : 1.0f;
+						int         pitch    = isDrums ? 36 : 60;
+						if ( mMode == NoteListPanel::Mode::Scale ) {
+							const auto &pc = music::k_scales[ static_cast<size_t>( mPluginInstanceRef.getScaleType() ) ].pitchClasses;
+							pitch = music::snapToScale( pitch, mPluginInstanceRef.getScaleRoot(), pc );
+						}
+						PeriodicNote note{
+							.pitch = pitch, .period = period, .offset = 0.0f, .duration = 0.5f, .channel = isDrums ? 9 : 0
+						};
+						mPluginInstanceRef.addNote( note );
+						mNoteColours.push_back( nextPaletteColour() );
+					},
+				 .onNoteChanged = [ this ]( int i, PeriodicNote n ) { mPluginInstanceRef.updateNote( i, n ); },
+			  } ),
+			  mCcListPanel( {
+									.onRemoveCc = [ this ]( int i ) { mPluginInstanceRef.removeCc( i ); },
+									.onAddCc =
+									  [ this ] {
+										  constexpr PeriodicCC defaultCc{ .number = 1, .period = 1.0f, .offset = 0.0f, .channel = 0 };
+										  mPluginInstanceRef.addCc( defaultCc );
+									  },
+									.onCcChanged = [ this ]( int i, PeriodicCC cc ) { mPluginInstanceRef.updateCc( i, cc ); },
+								 },
+	                      [ this ] { resized(); } ),
+			  mMidiExportButton( [ this ] {
+				  return generateMidiExport(
+					 mPluginInstanceRef.getNotes(), mPluginInstanceRef.getCCs(), mPluginInstanceRef.getBpm() );
+			  } ),
+			  mPatternPicker( [ this ]( const std::vector<PeriodicNote> &notes, bool add ) {
+				  if ( !add ) {
+					  const int n = static_cast<int>( mPluginInstanceRef.getNotes().size() );
+					  for ( int i = n - 1; i >= 0; --i )
+						  mPluginInstanceRef.removeNote( i );
+					  mNoteColours.clear();
+				  }
+				  for ( const auto &note : notes ) {
+					  mPluginInstanceRef.addNote( note );
+					  mNoteColours.push_back( nextPaletteColour() );
+				  }
+			  } ),
+			  mSettingsPanel(
+				 {
+					.onModeChanged         = [ this ]( NoteListPanel::Mode mode ) { applyMode( mode ); },
+					.onSilicaPeriodChanged = [ this ]( float period ) { mPluginInstanceRef.setSilicaPeriod( period ); },
+					.onScaleChanged =
+					  [ this ]( int root, int typeIdx ) {
+						  mPluginInstanceRef.setScaleRoot( root );
+						  mPluginInstanceRef.setScaleType( typeIdx );
+						  mNoteListPanel.setScaleConstraint( root, typeIdx );
+						  if ( mMode == NoteListPanel::Mode::Scale ) {
+							  const auto &pc    = music::k_scales[ static_cast<size_t>( typeIdx ) ].pitchClasses;
+							  const auto &notes = mPluginInstanceRef.getNotes();
+							  for ( int i = 0; i < static_cast<int>( notes.size() ); ++i ) {
+								  const int snapped = music::snapToScale( notes[ i ].pitch, root, pc );
+								  if ( snapped != notes[ i ].pitch ) {
+									  auto updated  = notes[ i ];
+									  updated.pitch = snapped;
+									  mPluginInstanceRef.updateNote( i, updated );
+								  }
+							  }
+						  }
+					  },
+					.onPlayPauseToggled =
+					  [ this ] {
+						  const bool next = !mPluginInstanceRef.isStandalonePlaying();
+						  mPluginInstanceRef.setStandalonePlaying( next );
+						  mSettingsPanel.setPlaying( next );
+					  },
+				 },
+				 owner.wrapperType == ::juce::AudioProcessor::wrapperType_Standalone ) {
 		for ( size_t i = 0; i < owner.getNotes().size(); ++i )
 			mNoteColours.push_back( nextPaletteColour() );
 
-		for ( auto *btn : { &mBtnPro, &mBtnMelody, &mBtnDrums, &mBtnSilica } ) {
-			btn->setClickingTogglesState( false );
-			btn->setColour( ::juce::TextButton::buttonOnColourId, ::juce::Colour( 0xff4fc3f7 ) );
-			addAndMakeVisible( *btn );
-		}
-		mBtnSilica.setColour( ::juce::TextButton::buttonOnColourId, ::juce::Colour( 0xffab47bc ) );
-		mBtnPro.onClick    = [ this ] { applyMode( NoteListPanel::Mode::Pro ); };
-		mBtnMelody.onClick = [ this ] { applyMode( NoteListPanel::Mode::Melody ); };
-		mBtnDrums.onClick  = [ this ] { applyMode( NoteListPanel::Mode::Drums ); };
-		mBtnSilica.onClick = [ this ] { applyMode( NoteListPanel::Mode::Silica ); };
-		applyMode( owner.getSilicaMode() ? NoteListPanel::Mode::Silica : NoteListPanel::Mode::Melody );
+		// Restore mode from processor state
+		const auto initialMode = static_cast<NoteListPanel::Mode>( owner.getMode() );
+		mMode                  = initialMode;
+		mNoteListPanel.setMode( initialMode );
+		mSettingsPanel.setMode( initialMode );
+		mSettingsPanel.setSilicaPeriod( owner.getSilicaPeriod() );
+		mSettingsPanel.setScaleRoot( owner.getScaleRoot() );
+		mSettingsPanel.setScaleType( owner.getScaleType() );
+		mNoteListPanel.setScaleConstraint( owner.getScaleRoot(), owner.getScaleType() );
+		mSettingsPanel.setPlaying( owner.isStandalonePlaying() );
 
 		addAndMakeVisible( mTimeDisplay );
-		mTimeDisplay.setBounds( 10, 10, 200, 30 );
 		addAndMakeVisible( mOrbitalDisplay );
 		addAndMakeVisible( mCcDisplay );
 		mNoteListPanel.setShowChannel( owner.wrapperType == ::juce::AudioProcessor::wrapperType_Standalone );
@@ -244,6 +287,7 @@ namespace plop::ui {
 		addAndMakeVisible( mCcListPanel );
 		addAndMakeVisible( mMidiExportButton );
 		addAndMakeVisible( mPatternPicker );
+		addAndMakeVisible( mSettingsPanel );
 
 		setSize( 800, 600 );
 		setResizable( true, true );

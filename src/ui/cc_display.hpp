@@ -7,6 +7,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include "music/midi.hpp"
+#include "ui/colours.hpp"
 
 namespace plop::ui {
 
@@ -72,7 +73,7 @@ namespace plop::ui {
 		}
 
 		void paint( ::juce::Graphics &g ) override {
-			g.fillAll( ::juce::Colour( 0xff0b0b18 ) );
+			g.fillAll( colours::lcdBgColour );
 
 			if ( mCcs.empty() ) {
 				g.setColour( ::juce::Colours::grey.withAlpha( 0.3f ) );
@@ -99,7 +100,7 @@ namespace plop::ui {
 					continue;
 
 				// Beat grid lines (subtle)
-				g.setColour( ::juce::Colour( 0xff222233 ) );
+				g.setColour( colours::subtleGrey );
 				for ( float b = std::ceil( beatStart ); b < beatStart + k_window; b += 1.0f ) {
 					const int gx = static_cast<int>( ( b - beatStart ) / k_window * w );
 					g.drawVerticalLine( gx, static_cast<float>( y ), static_cast<float>( y + k_lane_h ) );
@@ -119,7 +120,7 @@ namespace plop::ui {
 					else
 						wave.lineTo( static_cast<float>( px ), py );
 				}
-				g.setColour( ::juce::Colour( 0xff4fc3f7 ).withAlpha( 0.75f ) );
+				g.setColour( colours::accentBlue.withAlpha( 0.75f ) );
 				g.strokePath( wave, ::juce::PathStrokeType( 1.5f ) );
 
 				// Cursor line
@@ -134,12 +135,12 @@ namespace plop::ui {
 				g.fillEllipse( static_cast<float>( cursorX ) - 3.5f, dotY - 3.5f, 7.0f, 7.0f );
 
 				// Label (drawn over the left edge of the wave)
-				g.setColour( ::juce::Colour( 0xff888899 ) );
+				g.setColour( colours::offWhite );
 				g.setFont( 11.0f );
 				g.drawText( ccDisplayName( cc.number ), 4, y + ( k_lane_h - 14 ) / 2, k_label_w, 14, ::juce::Justification::centredLeft );
 
 				// Separator
-				g.setColour( ::juce::Colour( 0xff222233 ) );
+				g.setColour( colours::subtleGrey );
 				g.drawHorizontalLine( y + k_lane_h - 1, 0.0f, static_cast<float>( w ) );
 			}
 		}

@@ -125,6 +125,20 @@ namespace plop::p_loops {
 		void setSilicaPeriod( float period );
 		float getSilicaPeriod() const { return mSilicaPeriod; }
 
+		/// Active UI mode (persisted for save/restore).
+		void setMode( int mode ) { mMode = mode; }
+		int  getMode() const { return mMode; }
+
+		/// Scale mode state (UI-thread only, persisted for save/restore).
+		void setScaleRoot( int root ) { mScaleRoot = root; }
+		int  getScaleRoot() const { return mScaleRoot; }
+		void setScaleType( int typeIndex ) { mScaleType = typeIndex; }
+		int  getScaleType() const { return mScaleType; }
+
+		/// Standalone play/pause control.
+		void setStandalonePlaying( bool playing );
+		bool isStandalonePlaying() const { return mStandalonePlaying.load( std::memory_order_acquire ); }
+
 		/// Returns the UI-thread view of the CC list. Always called from the message thread.
 		const ::std::vector<PeriodicCC> &getCCs() const {
 			return mUiCcs;
@@ -187,12 +201,22 @@ namespace plop::p_loops {
 
 		// -----------------------------------------------------------------------
 
+		/// Active UI mode (stored as int to avoid depending on UI enum)
+		int mMode = 1; // 1 = Melody
+
 		/// Silica mode: equal-offset distribution
 		bool  mSilicaMode   = false;
 		float mSilicaPeriod = 4.0f;
 
+		/// Scale mode state
+		int mScaleRoot = 0;  // 0 = C
+		int mScaleType = 1;  // index into music::k_scales (1 = Major)
+
 		/// Recalculate all note offsets and periods for Silica distribution.
 		void redistributeSilicaOffsets();
+
+		std::atomic<bool> mStandalonePlaying{ true };
+		std::atomic<bool> mSendAllNotesOff{ false };
 
 		std::atomic<int64_t> time{ 0 };
 		double               mSampleRate = 44100.0;

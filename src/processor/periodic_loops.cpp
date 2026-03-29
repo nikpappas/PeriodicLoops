@@ -184,6 +184,12 @@ void p_loops::setSilicaPeriod( float period ) {
 		redistributeSilicaOffsets();
 }
 
+void p_loops::setStandalonePlaying( bool playing ) {
+	if ( !playing && mStandalonePlaying.load( std::memory_order_relaxed ) )
+		mSendAllNotesOff.store( true, std::memory_order_release );
+	mStandalonePlaying.store( playing, std::memory_order_release );
+}
+
 void p_loops::redistributeSilicaOffsets() {
 	const int n = static_cast<int>( mUiNotes.size() );
 	if ( n == 0 )
@@ -210,8 +216,17 @@ void p_loops::processBlock( AudioBuffer<float> &buffer, MidiBuffer &midi ) {
 	buffer.clear();
 	midi.clear();
 
-	const auto        numSamples = buffer.getNumSamples();
-	const NoteBuffer &noteBuf    = mNoteBuf[ mActiveNoteBuf.load( memory_order_acquire ) ];
+	const auto numSamples = buffer.getNumSamples();
+
+	// Send all-notes-off when standalone pauses
+	if ( mSendAllNotesOff.exchange( false, std::memory_order_acq_rel ) ) {
+		for ( int ch = 1; ch <= 16; ++ch )
+			midi.addEvent( MidiMessage::allNotesOff( ch ), 0 );
+		time += numSamples;
+		return;
+	}
+
+	const NoteBuffer &noteBuf = mNoteBuf[ mActiveNoteBuf.load( memory_order_acquire ) ];
 
 	if ( noteBuf.count == 0 ) {
 		time += numSamples;
@@ -234,6 +249,12 @@ void p_loops::processBlock( AudioBuffer<float> &buffer, MidiBuffer &midi ) {
 				ppqPosition = static_cast<float>( *posInfo->getPpqPosition() );
 			}
 		}
+	}
+
+	// Standalone pause
+	if ( wrapperType == wrapperType_Standalone && !mStandalonePlaying.load( memory_order_acquire ) ) {
+		time += numSamples;
+		return;
 	}
 
 	const float samplesPerBeat = static_cast<float>( mSampleRate ) * 60.0f / bpm.load();
@@ -290,6 +311,14 @@ void p_loops::processBlock( AudioBuffer<float> &buffer, MidiBuffer &midi ) {
 	const CCBuffer &ccBuf = mCcBuf[ mActiveCcBuf.load( memory_order_acquire ) ];
 	// CC pass
 	if ( ccBuf.count > 0 ) {
+		bool anySolo = false;
+		for ( auto &cc : ccBuf.cc ) {
+			if ( cc.solo ) {
+				anySolo = true;
+				break;
+			}
+		}
+
 		for ( int i = 0; i < numSamples; i += ccSamplingStep ) {
 			for ( int ni = 0; ni < ccBuf.count; ++ni ) {
 				const auto &cc = ccBuf.cc[ ni ];
@@ -297,6 +326,9 @@ void p_loops::processBlock( AudioBuffer<float> &buffer, MidiBuffer &midi ) {
 					continue;
 				}
 
+				if ( anySolo && !cc.solo ) {
+					continue;
+				}
 				midi.addEvent(
 				  MidiMessage::controllerEvent(
 					 cc.channel + 1,
@@ -328,8 +360,11 @@ void p_loops::getStateInformation( MemoryBlock &destData ) {
 		el->setAttribute( "channel", note.channel );
 	}
 
+	root.setAttribute( "mode", mMode );
 	root.setAttribute( "silicaMode", mSilicaMode );
 	root.setAttribute( "silicaPeriod", mSilicaPeriod );
+	root.setAttribute( "scaleRoot", mScaleRoot );
+	root.setAttribute( "scaleType", mScaleType );
 
 	auto *ccsEl = root.createNewChildElement( "CCs" );
 	for ( const auto &cc : mUiCcs ) {
@@ -372,8 +407,11 @@ void p_loops::setStateInformation( const void *data, int sizeInBytes ) {
 		addNote( note );
 	}
 
+	mMode         = xml->getIntAttribute( "mode", 1 );
 	mSilicaMode   = xml->getBoolAttribute( "silicaMode", false );
 	mSilicaPeriod = static_cast<float>( xml->getDoubleAttribute( "silicaPeriod", 4.0 ) );
+	mScaleRoot    = xml->getIntAttribute( "scaleRoot", 0 );
+	mScaleType    = xml->getIntAttribute( "scaleType", 1 );
 	if ( mSilicaMode )
 		redistributeSilicaOffsets();
 

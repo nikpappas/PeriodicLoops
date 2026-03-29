@@ -24,6 +24,8 @@ struct PeriodicCC {
 	float offset;
 	/// @brief  [0,15]
 	int channel;
+	/// @brief  solo flag (UI/runtime only, not serialised)
+	bool solo = false;
 };
 
 #endif // PLOP_SRC_MUSIC_MIDI_HPP
