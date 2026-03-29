@@ -20,34 +20,26 @@ namespace plop::ui {
 
 	class NoteListPanel : public ::juce::Component {
 	 public:
-		enum class Mode { Pro, Melody, Drums };
+		enum class Mode { Pro, Melody, Drums, Silica };
 
-		std::function<void( int, ::juce::Rectangle<int> )> onColourSwatchClicked;
-		std::function<void( int )>                         onRemoveNote;
-		std::function<void()>                              onAddNote;
-		std::function<void( int, PeriodicNote )>           onNoteChanged;
+		struct Callbacks {
+			std::function<void( int, ::juce::Rectangle<int> )> onColourSwatchClicked;
+			std::function<void( int )>                         onRemoveNote;
+			std::function<void()>                              onAddNote;
+			std::function<void( int, PeriodicNote )>           onNoteChanged;
+		};
 
-		NoteListPanel() {
+		explicit NoteListPanel( Callbacks cbs ) : mCbs( std::move( cbs ) ) {
 			mViewport.setScrollBarsShown( true, false );
 			mViewport.setViewedComponent( &mRows, false );
 			addAndMakeVisible( mViewport );
 
 			mRows.onColourSwatchClicked = [ this ]( int i, ::juce::Rectangle<int> sb ) {
-				if ( onColourSwatchClicked )
-					onColourSwatchClicked( i, sb );
+				if ( mCbs.onColourSwatchClicked ) mCbs.onColourSwatchClicked( i, sb );
 			};
-			mRows.onRemoveNote = [ this ]( int i ) {
-				if ( onRemoveNote )
-					onRemoveNote( i );
-			};
-			mRows.onAddNote = [ this ]() {
-				if ( onAddNote )
-					onAddNote();
-			};
-			mRows.onNoteChanged = [ this ]( int i, PeriodicNote n ) {
-				if ( onNoteChanged )
-					onNoteChanged( i, n );
-			};
+			mRows.onRemoveNote  = [ this ]( int i ) { if ( mCbs.onRemoveNote ) mCbs.onRemoveNote( i ); };
+			mRows.onAddNote     = [ this ]() { if ( mCbs.onAddNote ) mCbs.onAddNote(); };
+			mRows.onNoteChanged = [ this ]( int i, PeriodicNote n ) { if ( mCbs.onNoteChanged ) mCbs.onNoteChanged( i, n ); };
 		}
 
 		void setNotes( std::vector<PeriodicNote> notes ) {
@@ -102,7 +94,8 @@ namespace plop::ui {
 		static constexpr int k_header_h       = 30;
 		static constexpr int k_total_header_h = k_header_h + 4 + 22; // 56
 
-		Mode mMode = Mode::Melody;
+		const Callbacks mCbs;
+		Mode            mMode = Mode::Melody;
 
 		void syncRowsSize() {
 			if ( mViewport.getWidth() > 0 )
@@ -146,7 +139,6 @@ namespace plop::ui {
 			Mode mode() const {
 				return mMode;
 			}
-
 			int getContentHeight() const {
 				return static_cast<int>( mNotes.size() ) * row_h + 6 + 22 + 8;
 			}
@@ -169,16 +161,19 @@ namespace plop::ui {
 					g.setColour( colour.brighter( 0.3f ) );
 					g.drawRoundedRectangle( sb.toFloat(), swatchCornerRadius, 1.0f );
 
+					const bool silica = ( mMode == Mode::Silica );
 					g.setColour( ::juce::Colours::white );
 					drawCell( g, pitchLabel( note.pitch ), pitchRect( i ), i == mEditingIndex && mEditingField == Field::Pitch );
 					drawCell( g,
 					          ::juce::String( note.period, 2 ) + " b",
 					          periodRect( i ),
-					          i == mEditingIndex && mEditingField == Field::Period );
+					          i == mEditingIndex && mEditingField == Field::Period,
+					          silica );
 					drawCell( g,
 					          ::juce::String( note.offset, 2 ) + " b",
 					          offsetRect( i ),
-					          i == mEditingIndex && mEditingField == Field::Offset );
+					          i == mEditingIndex && mEditingField == Field::Offset,
+					          silica );
 					if ( mShowChannel )
 						drawCell( g, ::juce::String( note.channel ), channelRect( i ), i == mEditingIndex && mEditingField == Field::Channel );
 
@@ -214,9 +209,9 @@ namespace plop::ui {
 					Field f = Field::None;
 					if ( pitchRect( i ).contains( pos ) )
 						f = Field::Pitch;
-					else if ( periodRect( i ).contains( pos ) )
+					else if ( !( mMode == Mode::Silica ) && periodRect( i ).contains( pos ) )
 						f = Field::Period;
-					else if ( offsetRect( i ).contains( pos ) )
+					else if ( !( mMode == Mode::Silica ) && offsetRect( i ).contains( pos ) )
 						f = Field::Offset;
 					else if ( mShowChannel && channelRect( i ).contains( pos ) )
 						f = Field::Channel;
@@ -277,11 +272,11 @@ namespace plop::ui {
 						startEdit( i, Field::Pitch );
 						return;
 					}
-					if ( periodRect( i ).contains( e.getPosition() ) ) {
+					if ( !( mMode == Mode::Silica ) && periodRect( i ).contains( e.getPosition() ) ) {
 						startEdit( i, Field::Period );
 						return;
 					}
-					if ( offsetRect( i ).contains( e.getPosition() ) ) {
+					if ( !( mMode == Mode::Silica ) && offsetRect( i ).contains( e.getPosition() ) ) {
 						startEdit( i, Field::Offset );
 						return;
 					}
@@ -341,15 +336,17 @@ namespace plop::ui {
 				}
 				if ( mMode == Mode::Pro )
 					return ::juce::String( pitch );
+				// Melody and Silica both show note names
 				return "(" + ::juce::String( pitch ) + ") " + midiPitchToName( pitch );
 			}
 
-			void drawCell( ::juce::Graphics &g, const ::juce::String &text, ::juce::Rectangle<int> bounds, bool isActive ) const {
+			void drawCell( ::juce::Graphics &g, const ::juce::String &text, ::juce::Rectangle<int> bounds, bool isActive,
+			               bool dimmed = false ) const {
 				if ( isActive ) {
 					g.setColour( ::juce::Colour( 0xff2a2a44 ) );
 					g.fillRect( bounds );
 				}
-				g.setColour( ::juce::Colours::white );
+				g.setColour( dimmed ? ::juce::Colours::white.withAlpha( 0.35f ) : ::juce::Colours::white );
 				g.drawText( text, bounds, ::juce::Justification::centredLeft );
 			}
 

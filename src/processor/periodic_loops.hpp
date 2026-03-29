@@ -117,6 +117,14 @@ namespace plop::p_loops {
 		/// Replace the note at the given index. Must be called from the message thread only.
 		void updateNote( int index, const PeriodicNote &note );
 
+		/// Enable/disable Silica mode. In Silica mode all notes share one period
+		/// and offsets are equally distributed: offset[i] = i * period / N.
+		void setSilicaMode( bool enabled );
+		bool getSilicaMode() const { return mSilicaMode; }
+
+		void setSilicaPeriod( float period );
+		float getSilicaPeriod() const { return mSilicaPeriod; }
+
 		/// Returns the UI-thread view of the CC list. Always called from the message thread.
 		const ::std::vector<PeriodicCC> &getCCs() const {
 			return mUiCcs;
@@ -178,6 +186,13 @@ namespace plop::p_loops {
 		}
 
 		// -----------------------------------------------------------------------
+
+		/// Silica mode: equal-offset distribution
+		bool  mSilicaMode   = false;
+		float mSilicaPeriod = 4.0f;
+
+		/// Recalculate all note offsets and periods for Silica distribution.
+		void redistributeSilicaOffsets();
 
 		std::atomic<int64_t> time{ 0 };
 		double               mSampleRate = 44100.0;

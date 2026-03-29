@@ -58,19 +58,28 @@ namespace plop::ui {
 
 	class CcListPanel : public ::juce::Component {
 	 public:
-		std::function<void( int )>                  onRemoveCc;
-		std::function<void()>                       onAddCc;
-		std::function<void( int, PeriodicCC )>      onCcChanged;
+		struct Callbacks {
+			std::function<void( int )>             onRemoveCc;
+			std::function<void()>                  onAddCc;
+			std::function<void( int, PeriodicCC )> onCcChanged;
+		};
 
-		CcListPanel() {
+		using OnToggle = std::function<void()>;
+
+		explicit CcListPanel( Callbacks cbs, OnToggle onToggle = nullptr )
+		    : mCbs( std::move( cbs ) ), mOnToggle( std::move( onToggle ) ) {
 			mViewport.setScrollBarsShown( true, false );
 			mViewport.setViewedComponent( &mRows, false );
 			addAndMakeVisible( mViewport );
 
-			mRows.onRemoveCc  = [ this ]( int i ) { if ( onRemoveCc ) onRemoveCc( i ); };
-			mRows.onAddCc     = [ this ]() { if ( onAddCc ) onAddCc(); };
-			mRows.onCcChanged = [ this ]( int i, PeriodicCC cc ) { if ( onCcChanged ) onCcChanged( i, cc ); };
+			mRows.onRemoveCc  = [ this ]( int i ) { if ( mCbs.onRemoveCc ) mCbs.onRemoveCc( i ); };
+			mRows.onAddCc     = [ this ]() { if ( mCbs.onAddCc ) mCbs.onAddCc(); };
+			mRows.onCcChanged = [ this ]( int i, PeriodicCC cc ) { if ( mCbs.onCcChanged ) mCbs.onCcChanged( i, cc ); };
 		}
+
+		bool isCollapsed() const { return mCollapsed; }
+
+		int getCollapsedHeight() const { return k_header_h; }
 
 		void setCCs( std::vector<PeriodicCC> ccs ) {
 			mRows.setCCs( std::move( ccs ) );
@@ -82,9 +91,25 @@ namespace plop::ui {
 
 			g.setColour( ::juce::Colour( 0xff445555 ) );
 			g.fillRect( 0, 0, getWidth(), k_header_h );
+
+			// Collapse/expand triangle
+			const float triX = static_cast<float>( k_padding );
+			const float triY = static_cast<float>( k_header_h ) / 2.0f;
+			::juce::Path tri;
+			if ( mCollapsed ) {
+				tri.addTriangle( triX, triY - 4.0f, triX, triY + 4.0f, triX + 6.0f, triY );
+			} else {
+				tri.addTriangle( triX, triY - 3.0f, triX + 8.0f, triY - 3.0f, triX + 4.0f, triY + 4.0f );
+			}
+			g.setColour( ::juce::Colours::white.withAlpha( 0.7f ) );
+			g.fillPath( tri );
+
 			g.setColour( ::juce::Colours::white );
 			g.setFont( ::juce::Font( 13.0f, ::juce::Font::bold ) );
-			g.drawText( "CC Events", k_padding, 0, getWidth() - k_padding, k_header_h, ::juce::Justification::centredLeft );
+			g.drawText( "CC Events", k_padding + 14, 0, getWidth() - k_padding - 14, k_header_h, ::juce::Justification::centredLeft );
+
+			if ( mCollapsed )
+				return;
 
 			g.setColour( ::juce::Colour( 0xff888899 ) );
 			g.setFont( 11.0f );
@@ -98,7 +123,22 @@ namespace plop::ui {
 			g.drawHorizontalLine( k_total_header_h - 2, 0.0f, static_cast<float>( getWidth() ) );
 		}
 
+		void mouseDown( const ::juce::MouseEvent &e ) override {
+			if ( e.getPosition().y < k_header_h ) {
+				mCollapsed = !mCollapsed;
+				mViewport.setVisible( !mCollapsed );
+				if ( mOnToggle )
+					mOnToggle();
+				repaint();
+			}
+		}
+
 		void resized() override {
+			if ( mCollapsed ) {
+				mViewport.setVisible( false );
+				return;
+			}
+			mViewport.setVisible( true );
 			mViewport.setBounds( 0, k_total_header_h, getWidth(), getHeight() - k_total_header_h );
 			syncRowsSize();
 		}
@@ -107,6 +147,10 @@ namespace plop::ui {
 		static constexpr int k_padding        = 8;
 		static constexpr int k_header_h       = 30;
 		static constexpr int k_total_header_h = k_header_h + 4 + 22; // 56
+
+		const Callbacks mCbs;
+		const OnToggle  mOnToggle;
+		bool            mCollapsed = true;
 
 		void syncRowsSize() {
 			if ( mViewport.getWidth() > 0 )

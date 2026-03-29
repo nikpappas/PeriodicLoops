@@ -112,6 +112,8 @@ void p_loops::addNote( const PeriodicNote &note ) {
 			buf.notes[ buf.count++ ] = note;
 	} );
 	mUiNotes.push_back( note );
+	if ( mSilicaMode )
+		redistributeSilicaOffsets();
 }
 
 void p_loops::addCc( const PeriodicCC &cc ) {
@@ -156,6 +158,8 @@ void p_loops::removeNote( int index ) {
 		}
 	} );
 	mUiNotes.erase( mUiNotes.begin() + index );
+	if ( mSilicaMode )
+		redistributeSilicaOffsets();
 }
 
 void p_loops::updateNote( int index, const PeriodicNote &note ) {
@@ -166,6 +170,35 @@ void p_loops::updateNote( int index, const PeriodicNote &note ) {
 			buf.notes[ index ] = note;
 	} );
 	mUiNotes[ index ] = note;
+}
+
+void p_loops::setSilicaMode( bool enabled ) {
+	mSilicaMode = enabled;
+	if ( enabled )
+		redistributeSilicaOffsets();
+}
+
+void p_loops::setSilicaPeriod( float period ) {
+	mSilicaPeriod = ::juce::jmax( 0.01f, period );
+	if ( mSilicaMode )
+		redistributeSilicaOffsets();
+}
+
+void p_loops::redistributeSilicaOffsets() {
+	const int n = static_cast<int>( mUiNotes.size() );
+	if ( n == 0 )
+		return;
+
+	for ( int i = 0; i < n; ++i ) {
+		mUiNotes[ i ].period = mSilicaPeriod;
+		mUiNotes[ i ].offset = static_cast<float>( i ) * mSilicaPeriod / static_cast<float>( n );
+	}
+
+	swapBuffer( [ this, n ]( NoteBuffer &buf ) {
+		buf.count = n;
+		for ( int i = 0; i < n; ++i )
+			buf.notes[ i ] = mUiNotes[ i ];
+	} );
 }
 
 void p_loops::reset() {
@@ -295,6 +328,9 @@ void p_loops::getStateInformation( MemoryBlock &destData ) {
 		el->setAttribute( "channel", note.channel );
 	}
 
+	root.setAttribute( "silicaMode", mSilicaMode );
+	root.setAttribute( "silicaPeriod", mSilicaPeriod );
+
 	auto *ccsEl = root.createNewChildElement( "CCs" );
 	for ( const auto &cc : mUiCcs ) {
 		auto *el = ccsEl->createNewChildElement( "CC" );
@@ -335,6 +371,11 @@ void p_loops::setStateInformation( const void *data, int sizeInBytes ) {
 		};
 		addNote( note );
 	}
+
+	mSilicaMode   = xml->getBoolAttribute( "silicaMode", false );
+	mSilicaPeriod = static_cast<float>( xml->getDoubleAttribute( "silicaPeriod", 4.0 ) );
+	if ( mSilicaMode )
+		redistributeSilicaOffsets();
 
 	// Clear existing CCs
 	while ( !mUiCcs.empty() )

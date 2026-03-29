@@ -35,11 +35,10 @@ namespace plop::ui {
 	/// selects whether it adds to or replaces the current note list.
 	class PatternPicker : public ::juce::Component {
 	 public:
-		/// Called when the user picks a pattern.
-		/// `add` is true when the toggle shows "+", false for replace.
-		std::function<void( const std::vector<PeriodicNote> &, bool add )> onPickPattern;
+		using OnPickPattern = std::function<void( const std::vector<PeriodicNote> &, bool add )>;
 
-		PatternPicker() : mPatterns( makeBuiltinPatterns() ) {
+		explicit PatternPicker( OnPickPattern onPickPattern )
+		    : mOnPickPattern( std::move( onPickPattern ) ), mPatterns( makeBuiltinPatterns() ) {
 		}
 
 		void paint( ::juce::Graphics &g ) override {
@@ -128,14 +127,15 @@ namespace plop::ui {
 				return;
 			}
 			const int idx = swatchIndexAt( e.getPosition() );
-			if ( idx >= 0 && onPickPattern )
-				onPickPattern( mPatterns[ idx ].notes, mAddMode );
+			if ( idx >= 0 && mOnPickPattern )
+				mOnPickPattern( mPatterns[ idx ].notes, mAddMode );
 		}
 
 	 private:
 		static constexpr int k_toggle_w = 52;
 		static constexpr int k_gap      = 3;
 
+		const OnPickPattern     mOnPickPattern;
 		std::vector<PatternDef> mPatterns;
 		bool                    mAddMode      = false;
 		int                     mHoveredIndex = -1;
