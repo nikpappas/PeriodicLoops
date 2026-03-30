@@ -26,6 +26,7 @@ juce_add_plugin(
 target_sources(PeriodicLoops PRIVATE
     audio_processor.cpp
     processor/engine.cpp
+    processor/plugin_state.cpp
     processor/periodic_loops.cpp
 )
 

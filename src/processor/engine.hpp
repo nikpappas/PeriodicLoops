@@ -7,119 +7,146 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include "music/midi.hpp"
+#include "plugin_state.hpp"
 
-namespace plop::engine {
+namespace plop::p_loops {
 
-   class Engine {
-    public:
-      Engine();
+	class Engine {
 
-      void prepare( double sampleRate, int blockSize );
-      void reset();
+	 public:
+		Engine();
 
-      /// Called from the audio thread. Fills midi with scheduled note-on/off and CC events.
-      void process( ::juce::MidiBuffer &midi,
-                    int                 numSamples,
-                    ::juce::AudioPlayHead *playHead,
-                    ::juce::AudioProcessor::WrapperType wrapperType );
+		void prepare( double sampleRate, int blockSize );
+		void reset();
 
-      // ---- Note management (message thread) ------------------------------------
+		/// Called from the audio thread. Fills midi with scheduled note-on/off and CC events.
+		void process( ::juce::MidiBuffer                 &midi,
+		              int                                 numSamples,
+		              ::juce::AudioPlayHead              *playHead,
+		              ::juce::AudioProcessor::WrapperType wrapperType );
 
-      const ::std::vector<PeriodicNote> &getNotes() const { return mUiNotes; }
+		// ---- Note management (message thread) ------------------------------------
 
-      void addNote( const PeriodicNote &note );
-      void removeNote( int index );
-      void updateNote( int index, const PeriodicNote &note );
+		const ::std::vector<PeriodicNote> &getNotes() const {
+			return mUiNotes;
+		}
 
-      // ---- CC management (message thread) --------------------------------------
+		void addNote( const PeriodicNote &note );
+		void removeNote( int index );
+		void updateNote( int index, const PeriodicNote &note );
 
-      const ::std::vector<PeriodicCC> &getCCs() const { return mUiCcs; }
+		// ---- CC management (message thread) --------------------------------------
 
-      void addCc( const PeriodicCC &cc );
-      void removeCc( int index );
-      void updateCc( int index, const PeriodicCC &cc );
+		const ::std::vector<PeriodicCC> &getCCs() const {
+			return mUiCcs;
+		}
 
-      // ---- Silica mode ---------------------------------------------------------
+		void addCc( const PeriodicCC &cc );
+		void removeCc( int index );
+		void updateCc( int index, const PeriodicCC &cc );
 
-      void  setSilicaMode( bool enabled );
-      bool  getSilicaMode() const { return mSilicaMode; }
-      void  setSilicaPeriod( float period );
-      float getSilicaPeriod() const { return mSilicaPeriod; }
+		// ---- Silica mode ---------------------------------------------------------
 
-      // ---- UI mode / scale state -----------------------------------------------
+		bool isSilicaMode();
 
-      void setMode( int mode ) { mMode = mode; }
-      int  getMode() const { return mMode; }
+		void  setSilicaPeriod( float period );
+		float getSilicaPeriod() const {
+			return mSilicaPeriod;
+		}
 
-      void setScaleRoot( int root ) { mScaleRoot = root; }
-      int  getScaleRoot() const { return mScaleRoot; }
+		// ---- UI mode / scale state -----------------------------------------------
 
-      void setScaleType( int typeIndex ) { mScaleType = typeIndex; }
-      int  getScaleType() const { return mScaleType; }
+		void setMode( PluginMode mode );
 
-      // ---- Playback state ------------------------------------------------------
+		PluginMode getMode() const;
 
-      void    setStandalonePlaying( bool playing );
-      bool    isStandalonePlaying() const { return mStandalonePlaying.load( ::std::memory_order_acquire ); }
-      int64_t getTime() const { return mTime.load(); }
-      float   getBpm() const { return mBpm.load(); }
+		void setScaleRoot( int root ) {
+			mScaleRoot = root;
+		}
+		int getScaleRoot() const {
+			return mScaleRoot;
+		}
 
-    private:
-      // ---- Audio-safe double buffer --------------------------------------------
-      static constexpr int MAX_NOTES = 32;
+		void setScaleType( int typeIndex ) {
+			mScaleType = typeIndex;
+		}
+		int getScaleType() const {
+			return mScaleType;
+		}
 
-      struct NoteBuffer {
-         ::std::array<PeriodicNote, MAX_NOTES> notes{};
-         int                                   count = 0;
-      };
+		// ---- Playback state ------------------------------------------------------
 
-      struct CCBuffer {
-         ::std::array<PeriodicCC, MAX_NOTES> cc{};
-         int                                 count = 0;
-      };
+		void setStandalonePlaying( bool playing );
+		bool isStandalonePlaying() const {
+			return mStandalonePlaying.load( ::std::memory_order_acquire );
+		}
+		int64_t getTime() const {
+			return mTime.load();
+		}
+		float getBpm() const {
+			return mBpm.load();
+		}
 
-      NoteBuffer         mNoteBuf[ 2 ];
-      ::std::atomic<int> mActiveNoteBuf{ 0 };
+		// ---- State serialisation (message thread) --------------------------------
 
-      CCBuffer           mCcBuf[ 2 ];
-      ::std::atomic<int> mActiveCcBuf{ 0 };
+		PluginState captureState() const;
+		void        applyState( const PluginState &state );
 
-      ::std::vector<PeriodicNote> mUiNotes;
-      ::std::vector<PeriodicCC>   mUiCcs;
+	 private:
+		// ---- Audio-safe double buffer --------------------------------------------
+		static constexpr int MAX_NOTES = 32;
 
-      template <typename Fn>
-      void swapNoteBuffer( Fn &&fn ) {
-         const int inactive   = 1 - mActiveNoteBuf.load( ::std::memory_order_relaxed );
-         mNoteBuf[ inactive ] = mNoteBuf[ mActiveNoteBuf.load( ::std::memory_order_acquire ) ];
-         fn( mNoteBuf[ inactive ] );
-         mActiveNoteBuf.store( inactive, ::std::memory_order_release );
-      }
+		struct NoteBuffer {
+			::std::array<PeriodicNote, MAX_NOTES> notes{};
+			int                                   count = 0;
+		};
 
-      template <typename Fn>
-      void swapCCBuffer( Fn &&fn ) {
-         const int inactive = 1 - mActiveCcBuf.load( ::std::memory_order_relaxed );
-         mCcBuf[ inactive ] = mCcBuf[ mActiveCcBuf.load( ::std::memory_order_acquire ) ];
-         fn( mCcBuf[ inactive ] );
-         mActiveCcBuf.store( inactive, ::std::memory_order_release );
-      }
+		struct CCBuffer {
+			::std::array<PeriodicCC, MAX_NOTES> cc{};
+			int                                 count = 0;
+		};
 
-      // -------------------------------------------------------------------------
+		NoteBuffer         mNoteBuf[ 2 ];
+		::std::atomic<int> mActiveNoteBuf{ 0 };
 
-      int   mMode        = 1;     // 1 = Melody
-      bool  mSilicaMode  = false;
-      float mSilicaPeriod = 4.0f;
-      int   mScaleRoot   = 0;    // 0 = C
-      int   mScaleType   = 1;    // index into music::k_scales (1 = Major)
+		CCBuffer           mCcBuf[ 2 ];
+		::std::atomic<int> mActiveCcBuf{ 0 };
 
-      void redistributeSilicaOffsets();
+		::std::vector<PeriodicNote> mUiNotes;
+		::std::vector<PeriodicCC>   mUiCcs;
 
-      ::std::atomic<bool>    mStandalonePlaying{ true };
-      ::std::atomic<bool>    mSendAllNotesOff{ false };
-      ::std::atomic<int64_t> mTime{ 0 };
-      ::std::atomic<float>   mBpm{ 120.0f };
-      double                 mSampleRate = 44100.0;
-      int                    mBlockSize  = 128;
-   };
+		template <typename Fn>
+		void swapNoteBuffer( Fn &&fn ) {
+			const int inactive   = 1 - mActiveNoteBuf.load( ::std::memory_order_relaxed );
+			mNoteBuf[ inactive ] = mNoteBuf[ mActiveNoteBuf.load( ::std::memory_order_acquire ) ];
+			fn( mNoteBuf[ inactive ] );
+			mActiveNoteBuf.store( inactive, ::std::memory_order_release );
+		}
+
+		template <typename Fn>
+		void swapCCBuffer( Fn &&fn ) {
+			const int inactive = 1 - mActiveCcBuf.load( ::std::memory_order_relaxed );
+			mCcBuf[ inactive ] = mCcBuf[ mActiveCcBuf.load( ::std::memory_order_acquire ) ];
+			fn( mCcBuf[ inactive ] );
+			mActiveCcBuf.store( inactive, ::std::memory_order_release );
+		}
+
+		// -------------------------------------------------------------------------
+
+		PluginMode mMode         = PluginMode::Melody;
+		float      mSilicaPeriod = 4.0f;
+		int        mScaleRoot    = 0; // 0 = C
+		int        mScaleType    = 1; // index into music::k_scales (1 = Major)
+
+		void redistributeSilicaOffsets();
+
+		::std::atomic<bool>    mStandalonePlaying{ true };
+		::std::atomic<bool>    mSendAllNotesOff{ false };
+		::std::atomic<int64_t> mTime{ 0 };
+		::std::atomic<float>   mBpm{ 120.0f };
+		double                 mSampleRate = 44100.0;
+		int                    mBlockSize  = 128;
+	};
 
 } // namespace plop::engine
 

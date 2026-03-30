@@ -37,7 +37,7 @@ namespace plop::ui {
 		int64_t                   mLastTime    = 0;
 		int                       mLastCcCount = -1;
 
-		NoteListPanel::Mode mMode = NoteListPanel::Mode::Melody;
+		PluginMode mMode = PluginMode::Melody;
 
 		std::vector<::juce::Colour>                            mNoteColours;
 		::juce::Component::SafePointer<::juce::ColourSelector> mActiveSelector;
@@ -59,16 +59,11 @@ namespace plop::ui {
 			return palette[ mNoteColours.size() % std::size( palette ) ];
 		}
 
-		void applyMode( NoteListPanel::Mode mode ) {
-			const bool wasSilica = ( mMode == NoteListPanel::Mode::Silica );
-			const bool isSilica  = ( mode == NoteListPanel::Mode::Silica );
-			mMode                = mode;
+		void applyMode( PluginMode mode ) {
+			mMode = mode;
 			mNoteListPanel.setMode( mode );
 			mSettingsPanel.setMode( mode );
-			mPluginInstanceRef.setMode( static_cast<int>( mode ) );
-
-			if ( isSilica != wasSilica )
-				mPluginInstanceRef.setSilicaMode( isSilica );
+			mPluginInstanceRef.setMode( mode );
 
 			resized(); // settings panel height may change per mode
 		}
@@ -193,11 +188,11 @@ namespace plop::ui {
 					},
 				 .onAddNote =
 					[ this ] {
-						const bool  isDrums  = ( mMode == NoteListPanel::Mode::Drums );
-						const bool  isSilica = ( mMode == NoteListPanel::Mode::Silica );
+						const bool  isDrums  = ( mMode == PluginMode::Drums );
+						const bool  isSilica = ( mMode == PluginMode::Silica );
 						const float period   = isSilica ? mPluginInstanceRef.getSilicaPeriod() : 1.0f;
 						int         pitch    = isDrums ? 36 : 60;
-						if ( mMode == NoteListPanel::Mode::Scale ) {
+						if ( mMode == PluginMode::Scale ) {
 							const auto &pc = music::k_scales[ static_cast<size_t>( mPluginInstanceRef.getScaleType() ) ].pitchClasses;
 							pitch = music::snapToScale( pitch, mPluginInstanceRef.getScaleRoot(), pc );
 						}
@@ -237,14 +232,14 @@ namespace plop::ui {
 			  } ),
 			  mSettingsPanel(
 				 {
-					.onModeChanged         = [ this ]( NoteListPanel::Mode mode ) { applyMode( mode ); },
+					.onModeChanged         = [ this ]( PluginMode mode ) { applyMode( mode ); },
 					.onSilicaPeriodChanged = [ this ]( float period ) { mPluginInstanceRef.setSilicaPeriod( period ); },
 					.onScaleChanged =
 					  [ this ]( int root, int typeIdx ) {
 						  mPluginInstanceRef.setScaleRoot( root );
 						  mPluginInstanceRef.setScaleType( typeIdx );
 						  mNoteListPanel.setScaleConstraint( root, typeIdx );
-						  if ( mMode == NoteListPanel::Mode::Scale ) {
+						  if ( mMode == PluginMode::Scale ) {
 							  const auto &pc    = music::k_scales[ static_cast<size_t>( typeIdx ) ].pitchClasses;
 							  const auto &notes = mPluginInstanceRef.getNotes();
 							  for ( int i = 0; i < static_cast<int>( notes.size() ); ++i ) {
@@ -269,7 +264,7 @@ namespace plop::ui {
 			mNoteColours.push_back( nextPaletteColour() );
 
 		// Restore mode from processor state
-		const auto initialMode = static_cast<NoteListPanel::Mode>( owner.getMode() );
+		const auto initialMode = owner.getMode();
 		mMode                  = initialMode;
 		mNoteListPanel.setMode( initialMode );
 		mSettingsPanel.setMode( initialMode );

@@ -1,6 +1,7 @@
 #include "periodic_loops.hpp"
 
 #include "logging/logging.hpp"
+#include "plugin_state.hpp"
 #include "ui/p_loops_ui.hpp"
 #include "utils/constants.hpp"
 
@@ -102,84 +103,24 @@ void p_loops::processBlock( AudioBuffer<double> &, MidiBuffer & ) {
 }
 
 void p_loops::getStateInformation( MemoryBlock &destData ) {
-   juce::XmlElement root( "PeriodicLoopState" );
-
-   auto *notesEl = root.createNewChildElement( "Notes" );
-   for ( const auto &note : mEngine.getNotes() ) {
-      auto *el = notesEl->createNewChildElement( "Note" );
-      el->setAttribute( "pitch", note.pitch );
-      el->setAttribute( "period", note.period );
-      el->setAttribute( "offset", note.offset );
-      el->setAttribute( "duration", note.duration );
-      el->setAttribute( "channel", note.channel );
-   }
-
-   root.setAttribute( "mode", mEngine.getMode() );
-   root.setAttribute( "silicaMode", mEngine.getSilicaMode() );
-   root.setAttribute( "silicaPeriod", mEngine.getSilicaPeriod() );
-   root.setAttribute( "scaleRoot", mEngine.getScaleRoot() );
-   root.setAttribute( "scaleType", mEngine.getScaleType() );
-
-   auto *ccsEl = root.createNewChildElement( "CCs" );
-   for ( const auto &cc : mEngine.getCCs() ) {
-      auto *el = ccsEl->createNewChildElement( "CC" );
-      el->setAttribute( "number", cc.number );
-      el->setAttribute( "period", cc.period );
-      el->setAttribute( "offset", cc.offset );
-      el->setAttribute( "channel", cc.channel );
-   }
-
-   copyXmlToBinary( root, destData );
+   const auto xml = mEngine.captureState().toXml();
+   copyXmlToBinary( xml, destData );
    pl_debug( "getStateInformation: saved " + to_string( mEngine.getNotes().size() ) + " notes, "
              + to_string( mEngine.getCCs().size() ) + " CCs" );
 }
 
 void p_loops::setStateInformation( const void *data, int sizeInBytes ) {
-   auto xml = getXmlFromBinary( data, sizeInBytes );
-   if ( !xml || xml->getTagName() != "PeriodicLoopState" ) {
+   const auto xml = getXmlFromBinary( data, sizeInBytes );
+   if ( !xml ) {
       pl_error( "setStateInformation: invalid or missing state XML" );
       return;
    }
-
-   const auto *notesEl = xml->getChildByName( "Notes" );
-   if ( !notesEl ) {
-      pl_error( "setStateInformation: missing Notes element" );
+   const auto state = PluginState::fromXml( *xml );
+   if ( !state ) {
+      pl_error( "setStateInformation: unrecognised state format" );
       return;
    }
-
-   while ( !mEngine.getNotes().empty() )
-      mEngine.removeNote( 0 );
-
-   for ( const auto *el : notesEl->getChildIterator() ) {
-      mEngine.addNote( PeriodicNote{
-        .pitch    = el->getIntAttribute( "pitch", 60 ),
-        .period   = static_cast<float>( el->getDoubleAttribute( "period", 1.0 ) ),
-        .offset   = static_cast<float>( el->getDoubleAttribute( "offset", 0.0 ) ),
-        .duration = static_cast<float>( el->getDoubleAttribute( "duration", 0.5 ) ),
-        .channel  = el->getIntAttribute( "channel", 0 ),
-      } );
-   }
-
-   mEngine.setMode( xml->getIntAttribute( "mode", 1 ) );
-   mEngine.setSilicaMode( xml->getBoolAttribute( "silicaMode", false ) );
-   mEngine.setSilicaPeriod( static_cast<float>( xml->getDoubleAttribute( "silicaPeriod", 4.0 ) ) );
-   mEngine.setScaleRoot( xml->getIntAttribute( "scaleRoot", 0 ) );
-   mEngine.setScaleType( xml->getIntAttribute( "scaleType", 1 ) );
-
-   while ( !mEngine.getCCs().empty() )
-      mEngine.removeCc( 0 );
-
-   if ( const auto *ccsEl = xml->getChildByName( "CCs" ) ) {
-      for ( const auto *el : ccsEl->getChildIterator() ) {
-         mEngine.addCc( PeriodicCC{
-           .number  = el->getIntAttribute( "number", 1 ),
-           .period  = static_cast<float>( el->getDoubleAttribute( "period", 1.0 ) ),
-           .offset  = static_cast<float>( el->getDoubleAttribute( "offset", 0.0 ) ),
-           .channel = el->getIntAttribute( "channel", 0 ),
-         } );
-      }
-   }
-
+   mEngine.applyState( *state );
    pl_debug( "setStateInformation: loaded " + to_string( mEngine.getNotes().size() ) + " notes, "
              + to_string( mEngine.getCCs().size() ) + " CCs" );
 }

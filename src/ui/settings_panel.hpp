@@ -6,6 +6,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include "music/scales.hpp"
+#include "processor/plugin_state.hpp"
 #include "ui/colours.hpp"
 #include "ui/note_list_panel.hpp"
 
@@ -13,13 +14,11 @@ namespace plop::ui {
 
 	class SettingsPanel : public ::juce::Component {
 	 public:
-		using Mode = NoteListPanel::Mode;
-
 		struct Callbacks {
-			std::function<void( Mode )>     onModeChanged;
-			std::function<void( float )>    onSilicaPeriodChanged;
-			std::function<void( int, int )> onScaleChanged; // root, typeIndex
-			std::function<void()>           onPlayPauseToggled;
+			std::function<void( PluginMode )> onModeChanged;
+			std::function<void( float )>      onSilicaPeriodChanged;
+			std::function<void( int, int )>   onScaleChanged; // root, typeIndex
+			std::function<void()>             onPlayPauseToggled;
 		};
 
 		explicit SettingsPanel( Callbacks cbs, bool showPlayPause ) :
@@ -30,11 +29,11 @@ namespace plop::ui {
 				addAndMakeVisible( *btn );
 			}
 
-			mBtnPro.onClick    = [ this ] { fireMode( Mode::Pro ); };
-			mBtnMelody.onClick = [ this ] { fireMode( Mode::Melody ); };
-			mBtnDrums.onClick  = [ this ] { fireMode( Mode::Drums ); };
-			mBtnSilica.onClick = [ this ] { fireMode( Mode::Silica ); };
-			mBtnScale.onClick  = [ this ] { fireMode( Mode::Scale ); };
+			mBtnPro.onClick    = [ this ] { fireMode( PluginMode::Pro ); };
+			mBtnMelody.onClick = [ this ] { fireMode( PluginMode::Melody ); };
+			mBtnDrums.onClick  = [ this ] { fireMode( PluginMode::Drums ); };
+			mBtnSilica.onClick = [ this ] { fireMode( PluginMode::Silica ); };
+			mBtnScale.onClick  = [ this ] { fireMode( PluginMode::Scale ); };
 
 			if ( mShowPlayPause ) {
 				mBtnPlayPause.setColour( ::juce::TextButton::buttonOnColourId, colours::btnAccentColourAlt );
@@ -47,18 +46,18 @@ namespace plop::ui {
 			}
 		}
 
-		void setMode( Mode mode ) {
+		void setMode( PluginMode mode ) {
 			mMode = mode;
-			mBtnPro.setToggleState( mode == Mode::Pro, ::juce::dontSendNotification );
-			mBtnMelody.setToggleState( mode == Mode::Melody, ::juce::dontSendNotification );
-			mBtnDrums.setToggleState( mode == Mode::Drums, ::juce::dontSendNotification );
-			mBtnSilica.setToggleState( mode == Mode::Silica, ::juce::dontSendNotification );
-			mBtnScale.setToggleState( mode == Mode::Scale, ::juce::dontSendNotification );
+			mBtnPro.setToggleState( mode == PluginMode::Pro, ::juce::dontSendNotification );
+			mBtnMelody.setToggleState( mode == PluginMode::Melody, ::juce::dontSendNotification );
+			mBtnDrums.setToggleState( mode == PluginMode::Drums, ::juce::dontSendNotification );
+			mBtnSilica.setToggleState( mode == PluginMode::Silica, ::juce::dontSendNotification );
+			mBtnScale.setToggleState( mode == PluginMode::Scale, ::juce::dontSendNotification );
 			resized();
 			repaint();
 		}
 
-		Mode getMode() const {
+		PluginMode getMode() const {
 			return mMode;
 		}
 
@@ -86,9 +85,9 @@ namespace plop::ui {
 		int getPreferredHeight() const {
 			int h = kPadding + kRowH; // mode buttons row 1
 			h += kPadding + kRowH;    // mode buttons row 2
-			if ( mMode == Mode::Silica )
+			if ( mMode == PluginMode::Silica )
 				h += kPadding + kRowH; // period
-			if ( mMode == Mode::Scale )
+			if ( mMode == PluginMode::Scale )
 				h += kPadding + kRowH + kPadding + kRowH; // root + scale type
 			if ( mShowPlayPause )
 				h += kPadding + kRowH; // play/pause
@@ -100,7 +99,7 @@ namespace plop::ui {
 			g.fillAll( ::juce::Colour( 0xff181828 ) );
 
 			// Silica period row
-			if ( mMode == Mode::Silica ) {
+			if ( mMode == PluginMode::Silica ) {
 				auto       r      = silicaPeriodRect();
 				const bool active = mDragField == DragField::SilicaPeriod;
 				if ( active ) {
@@ -116,7 +115,7 @@ namespace plop::ui {
 			}
 
 			// Scale root + type rows
-			if ( mMode == Mode::Scale ) {
+			if ( mMode == PluginMode::Scale ) {
 				// Root row
 				{
 					auto       r      = scaleRootRect();
@@ -163,7 +162,7 @@ namespace plop::ui {
 			const int btnW = ( buttonBounds.getWidth() - 2 * kPadding - ( numberOfBtns - 1 ) * kBtnGap ) / numberOfBtns;
 
 			buttonBounds.removeFromLeft( kPadding );
-			// Row 1: Mode buttons
+			// Row 1: PluginMode buttons
 			buttonBounds.removeFromLeft( kBtnGap / 2 );
 			mBtnPro.setBounds( buttonBounds.removeFromLeft( btnW ) );
 			buttonBounds.removeFromLeft( kBtnGap );
@@ -182,17 +181,17 @@ namespace plop::ui {
 		}
 
 		void mouseDown( const ::juce::MouseEvent &e ) override {
-			if ( mMode == Mode::Silica && silicaPeriodRect().contains( e.getPosition() ) ) {
+			if ( mMode == PluginMode::Silica && silicaPeriodRect().contains( e.getPosition() ) ) {
 				mDragField      = DragField::SilicaPeriod;
 				mDragStartY     = e.getPosition().y;
 				mDragStartValue = mSilicaPeriod;
 				setMouseCursor( ::juce::MouseCursor::UpDownResizeCursor );
-			} else if ( mMode == Mode::Scale && scaleRootRect().contains( e.getPosition() ) ) {
+			} else if ( mMode == PluginMode::Scale && scaleRootRect().contains( e.getPosition() ) ) {
 				mDragField    = DragField::ScaleRoot;
 				mDragStartY   = e.getPosition().y;
 				mDragStartInt = mScaleRoot;
 				setMouseCursor( ::juce::MouseCursor::UpDownResizeCursor );
-			} else if ( mMode == Mode::Scale && scaleTypeRect().contains( e.getPosition() ) ) {
+			} else if ( mMode == PluginMode::Scale && scaleTypeRect().contains( e.getPosition() ) ) {
 				mDragField    = DragField::ScaleType;
 				mDragStartY   = e.getPosition().y;
 				mDragStartInt = mScaleType;
@@ -233,7 +232,7 @@ namespace plop::ui {
 		}
 
 		void mouseDoubleClick( const ::juce::MouseEvent &e ) override {
-			if ( mMode == Mode::Silica && silicaPeriodRect().contains( e.getPosition() ) ) {
+			if ( mMode == PluginMode::Silica && silicaPeriodRect().contains( e.getPosition() ) ) {
 				startPeriodEdit();
 			}
 		}
@@ -253,11 +252,11 @@ namespace plop::ui {
 		::juce::TextButton mBtnScale{ "Scale" };
 		::juce::TextButton mBtnPlayPause{ "Play" };
 
-		Mode  mMode         = Mode::Melody;
-		float mSilicaPeriod = 4.0f;
-		int   mScaleRoot    = 0; // 0 = C
-		int   mScaleType    = 1; // Major
-		bool  mPlaying      = true;
+		PluginMode mMode         = PluginMode::Melody;
+		float      mSilicaPeriod = 4.0f;
+		int        mScaleRoot    = 0; // 0 = C
+		int        mScaleType    = 1; // Major
+		bool       mPlaying      = true;
 
 		enum class DragField { None, SilicaPeriod, ScaleRoot, ScaleType };
 		DragField mDragField      = DragField::None;
@@ -284,7 +283,7 @@ namespace plop::ui {
 			return { kPadding, modeSettingsY() + kRowH + kPadding, getWidth() - 2 * kPadding, kRowH };
 		}
 
-		void fireMode( Mode mode ) {
+		void fireMode( PluginMode mode ) {
 			if ( mCbs.onModeChanged )
 				mCbs.onModeChanged( mode );
 		}
