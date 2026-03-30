@@ -116,10 +116,6 @@ namespace plop::ui {
 				if ( mCbs.onRemoveCc )
 					mCbs.onRemoveCc( i );
 			};
-			mRows.onAddCc = [ this ]() {
-				if ( mCbs.onAddCc )
-					mCbs.onAddCc();
-			};
 			mRows.onCcChanged = [ this ]( int i, PeriodicCC cc ) {
 				if ( mCbs.onCcChanged )
 					mCbs.onCcChanged( i, cc );
@@ -164,6 +160,13 @@ namespace plop::ui {
 			if ( mCollapsed )
 				return;
 
+			const auto addB = addButtonRect();
+			g.setColour( colours::addBg );
+			g.fillRoundedRectangle( addB.toFloat(), 4.0f );
+			g.setColour( colours::addAccent );
+			g.setFont( 13.0f );
+			g.drawText( "+ Add CC", addB, ::juce::Justification::centred );
+
 			g.setColour( colours::offWhite );
 			g.setFont( 11.0f );
 			const int y_cols = HEADER_H + 4;
@@ -183,7 +186,10 @@ namespace plop::ui {
 				if ( mOnToggle )
 					mOnToggle();
 				repaint();
+				return;
 			}
+			if ( !mCollapsed && mCbs.onAddCc && addButtonRect().contains( e.getPosition() ) )
+				mCbs.onAddCc();
 		}
 
 		void resized() override {
@@ -192,7 +198,7 @@ namespace plop::ui {
 				return;
 			}
 			mViewport.setVisible( true );
-			mViewport.setBounds( 0, TOTAL_HEADER_H, getWidth(), getHeight() - TOTAL_HEADER_H );
+			mViewport.setBounds( 0, TOTAL_HEADER_H, getWidth(), getHeight() - TOTAL_HEADER_H - ADD_BTN_H );
 			syncRowsSize();
 		}
 
@@ -200,10 +206,15 @@ namespace plop::ui {
 		static constexpr int PADDING        = 8;
 		static constexpr int HEADER_H       = 30;
 		static constexpr int TOTAL_HEADER_H = HEADER_H + 4 + 22; // 56
+		static constexpr int ADD_BTN_H      = 36;
 
 		const Callbacks mCbs;
 		const OnToggle  mOnToggle;
 		bool            mCollapsed = true;
+
+		::juce::Rectangle<int> addButtonRect() const {
+			return { PADDING, getHeight() - ADD_BTN_H + 7, getWidth() - 2 * PADDING, 22 };
+		}
 
 		void syncRowsSize() {
 			if ( mViewport.getWidth() > 0 )
@@ -214,7 +225,6 @@ namespace plop::ui {
 		class RowsComponent : public ::juce::Component {
 		 public:
 			std::function<void( int )>             onRemoveCc;
-			std::function<void()>                  onAddCc;
 			std::function<void( int, PeriodicCC )> onCcChanged;
 
 			RowsComponent() {
@@ -233,7 +243,7 @@ namespace plop::ui {
 			}
 
 			int getContentHeight() const {
-				return static_cast<int>( mCcs.size() ) * ROW_H + 6 + 22 + 8;
+				return static_cast<int>( mCcs.size() ) * ROW_H;
 			}
 
 			void paint( ::juce::Graphics &g ) override {
@@ -270,13 +280,6 @@ namespace plop::ui {
 					g.drawText( "x", rb, ::juce::Justification::centred );
 					g.setFont( 13.0f );
 				}
-				const int  addY = static_cast<int>( mCcs.size() ) * ROW_H + 6;
-				const auto addB = ::juce::Rectangle<int>{ PADDING, addY, getWidth() - 2 * PADDING, 22 };
-				g.setColour( colours::addBg );
-				g.fillRoundedRectangle( addB.toFloat(), 4.0f );
-				g.setColour( colours::addAccent );
-				g.setFont( 13.0f );
-				g.drawText( "+ Add CC", addB, ::juce::Justification::centred );
 			}
 
 			void mouseDown( const ::juce::MouseEvent &e ) override {
@@ -321,10 +324,6 @@ namespace plop::ui {
 						return;
 					}
 				}
-				const int  addY = static_cast<int>( mCcs.size() ) * ROW_H + 6;
-				const auto addB = ::juce::Rectangle<int>{ PADDING, addY, getWidth() - 2 * PADDING, 22 };
-				if ( onAddCc && addB.contains( pos ) )
-					onAddCc();
 			}
 
 			void mouseDrag( const ::juce::MouseEvent &e ) override {

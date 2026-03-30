@@ -10,12 +10,12 @@
 
 namespace plop {
 
-	enum class PluginMode { Pro, Melody, Drums, Silica, Scale };
+	enum class PluginMode { pro, melody, drums, silica, scale };
 
 	struct PluginState {
 		::std::vector<PeriodicNote> notes;
 		::std::vector<PeriodicCC>   ccs;
-		PluginMode                  mode         = PluginMode::Melody;
+		PluginMode                  mode         = PluginMode::melody;
 		bool                        silicaMode   = false;
 		float                       silicaPeriod = 4.0f;
 		int                         scaleRoot    = 0; // 0 = C

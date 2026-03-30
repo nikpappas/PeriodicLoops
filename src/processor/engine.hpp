@@ -133,7 +133,7 @@ namespace plop::p_loops {
 
 		// -------------------------------------------------------------------------
 
-		PluginMode mMode         = PluginMode::Melody;
+		PluginMode mMode         = PluginMode::melody;
 		float      mSilicaPeriod = 4.0f;
 		int        mScaleRoot    = 0; // 0 = C
 		int        mScaleType    = 1; // index into music::SCALES (1 = Major)

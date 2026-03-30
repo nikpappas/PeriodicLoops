@@ -4,15 +4,15 @@ namespace plop {
 
 	constexpr int fromPluginMode( const PluginMode &mode ) {
 		switch ( mode ) {
-			case PluginMode::Pro:
+			case PluginMode::pro:
 				return 0;
-			case PluginMode::Melody:
+			case PluginMode::melody:
 				return 1;
-			case PluginMode::Drums:
+			case PluginMode::drums:
 				return 2;
-			case PluginMode::Silica:
+			case PluginMode::silica:
 				return 3;
-			case PluginMode::Scale:
+			case PluginMode::scale:
 				return 4;
 		}
 		return 1;
@@ -21,17 +21,17 @@ namespace plop {
 	constexpr PluginMode fromInt( const int &modeInt ) {
 		switch ( modeInt ) {
 			case 0:
-				return PluginMode::Pro;
+				return PluginMode::pro;
 			case 1:
-				return PluginMode::Melody;
+				return PluginMode::melody;
 			case 2:
-				return PluginMode::Drums;
+				return PluginMode::drums;
 			case 3:
-				return PluginMode::Silica;
+				return PluginMode::silica;
 			case 4:
-				return PluginMode::Scale;
+				return PluginMode::scale;
 			default:
-				return PluginMode::Melody;
+				return PluginMode::melody;
 		}
 	}
 

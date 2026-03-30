@@ -26,18 +26,18 @@ namespace plop::ui {
 			  , private ::juce::ChangeListener {
 	 private:
 		::plop::p_loops::PLoops &mPluginInstanceRef;
-		TimeDisplay               mTimeDisplay;
-		OrbitalDisplay            mOrbitalDisplay;
-		NoteListPanel             mNoteListPanel;
-		CcListPanel               mCcListPanel;
-		CcDisplay                 mCcDisplay;
-		MidiExportButton          mMidiExportButton;
-		PatternPicker             mPatternPicker;
-		SettingsPanel             mSettingsPanel;
-		int64_t                   mLastTime    = 0;
-		int                       mLastCcCount = -1;
+		TimeDisplay              mTimeDisplay;
+		OrbitalDisplay           mOrbitalDisplay;
+		NoteListPanel            mNoteListPanel;
+		CcListPanel              mCcListPanel;
+		CcDisplay                mCcDisplay;
+		MidiExportButton         mMidiExportButton;
+		PatternPicker            mPatternPicker;
+		SettingsPanel            mSettingsPanel;
+		int64_t                  mLastTime    = 0;
+		int                      mLastCcCount = -1;
 
-		PluginMode mMode = PluginMode::Melody;
+		PluginMode mMode = PluginMode::melody;
 
 		std::vector<::juce::Colour>                            mNoteColours;
 		::juce::Component::SafePointer<::juce::ColourSelector> mActiveSelector;
@@ -52,9 +52,8 @@ namespace plop::ui {
 	 private:
 		::juce::Colour nextPaletteColour() const {
 			static const ::juce::Colour palette[] = {
-				colours::paletteBlue,   colours::paletteRed,    colours::paletteGreen,
-				colours::paletteOrange, colours::palettePurple, colours::paletteTeal,
-				colours::palettePink,   colours::paletteBrown,
+				colours::paletteBlue,   colours::paletteRed,  colours::paletteGreen, colours::paletteOrange,
+				colours::palettePurple, colours::paletteTeal, colours::palettePink,  colours::paletteBrown,
 			};
 			return palette[ mNoteColours.size() % std::size( palette ) ];
 		}
@@ -188,11 +187,11 @@ namespace plop::ui {
 					},
 				 .onAddNote =
 					[ this ] {
-						const bool  isDrums  = ( mMode == PluginMode::Drums );
-						const bool  isSilica = ( mMode == PluginMode::Silica );
+						const bool  isDrums  = ( mMode == PluginMode::drums );
+						const bool  isSilica = ( mMode == PluginMode::silica );
 						const float period   = isSilica ? mPluginInstanceRef.getSilicaPeriod() : 1.0f;
 						int         pitch    = isDrums ? 36 : 60;
-						if ( mMode == PluginMode::Scale ) {
+						if ( mMode == PluginMode::scale ) {
 							const auto &pc = music::SCALES[ static_cast<size_t>( mPluginInstanceRef.getScaleType() ) ].pitchClasses;
 							pitch = music::snapToScale( pitch, mPluginInstanceRef.getScaleRoot(), pc );
 						}
@@ -239,7 +238,7 @@ namespace plop::ui {
 						  mPluginInstanceRef.setScaleRoot( root );
 						  mPluginInstanceRef.setScaleType( typeIdx );
 						  mNoteListPanel.setScaleConstraint( root, typeIdx );
-						  if ( mMode == PluginMode::Scale ) {
+						  if ( mMode == PluginMode::scale ) {
 							  const auto &pc    = music::SCALES[ static_cast<size_t>( typeIdx ) ].pitchClasses;
 							  const auto &notes = mPluginInstanceRef.getNotes();
 							  for ( int i = 0; i < static_cast<int>( notes.size() ); ++i ) {

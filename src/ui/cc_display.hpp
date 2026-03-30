@@ -86,8 +86,8 @@ namespace plop::ui {
 			constexpr float WINDOW    = 8.0f;
 			constexpr float CURSOR_T  = 0.25f;
 			const float     beatStart = mCurrentBeat - WINDOW * CURSOR_T;
-			const int       w          = getWidth();
-			auto            isAnySolo  = false;
+			const int       w         = getWidth();
+			auto            isAnySolo = false;
 			for ( int i = 0; i < static_cast<int>( mCcs.size() ); ++i ) {
 				if ( mCcs[ i ].solo ) {
 					isAnySolo = true;
@@ -137,10 +137,12 @@ namespace plop::ui {
 				g.drawVerticalLine( cursorX, static_cast<float>( y ), static_cast<float>( y + LANE_H ) );
 
 				// Current-value dot on the waveform
-				const float curVal = 0.5f + 0.5f * std::sin( 2.0f * 3.14159265f * ( mCurrentBeat + cc.offset ) / cc.period );
-				const float dotY = y + margin + waveH * ( 1.0f - curVal );
-				g.setColour( ::juce::Colours::white );
-				g.fillEllipse( static_cast<float>( cursorX ) - 3.5f, dotY - 3.5f, 7.0f, 7.0f );
+				if ( !isDisabled ) {
+					const float curVal = 0.5f + 0.5f * std::sin( 2.0f * 3.14159265f * ( mCurrentBeat + cc.offset ) / cc.period );
+					const float dotY = y + margin + waveH * ( 1.0f - curVal );
+					g.setColour( ::juce::Colours::white );
+					g.fillEllipse( static_cast<float>( cursorX ) - 3.5f, dotY - 3.5f, 7.0f, 7.0f );
+				}
 
 				// Label (drawn over the left edge of the wave)
 				g.setColour( colours::offWhite );

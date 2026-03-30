@@ -167,7 +167,7 @@ void Engine::addNote( const PeriodicNote &note ) {
 			buf.notes[ buf.count++ ] = note;
 	} );
 	mUiNotes.push_back( note );
-	if ( mMode == PluginMode::Silica )
+	if ( mMode == PluginMode::silica )
 		redistributeSilicaOffsets();
 }
 
@@ -238,7 +238,7 @@ void Engine::setSilicaPeriod( float period ) {
 }
 
 bool Engine::isSilicaMode() {
-	return mMode == PluginMode::Silica;
+	return mMode == PluginMode::silica;
 }
 
 void Engine::redistributeSilicaOffsets() {
