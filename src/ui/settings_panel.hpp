@@ -66,13 +66,13 @@ namespace plop::ui {
 		}
 
 		int getPreferredHeight() const {
-			int h = PADDING + ROW_H; // mode buttons row 1
-			h += PADDING + ROW_H;    // mode buttons row 2
+			int h = PAD_SM + ROW_H; // mode buttons row 1
+			h += PAD_SM + ROW_H;    // mode buttons row 2
 			if ( mMode == PluginMode::silica )
-				h += PADDING + ROW_H; // period
+				h += PAD_SM + ROW_H; // period
 			if ( mMode == PluginMode::scale )
-				h += PADDING + ROW_H + PADDING + ROW_H; // root + scale type
-			h += PADDING;
+				h += PAD_SM + ROW_H + PAD_SM + ROW_H; // root + scale type
+			h += PAD_SM;
 			return h;
 		}
 
@@ -137,22 +137,22 @@ namespace plop::ui {
 		void resized() override {
 			auto bounds       = getLocalBounds();
 			auto numberOfBtns = 5;
-			bounds.removeFromTop( PADDING );
+			bounds.removeFromTop( PAD_SM );
 			auto buttonBounds = bounds.removeFromTop( ROW_H );
 
-			const int btnW = ( buttonBounds.getWidth() - 2 * PADDING - ( numberOfBtns - 1 ) * BTN_GAP ) / numberOfBtns;
+			const int btnW = ( buttonBounds.getWidth() - 2 * PAD_SM - ( numberOfBtns - 1 ) * PAD_SM ) / numberOfBtns;
 
-			buttonBounds.removeFromLeft( PADDING );
+			buttonBounds.removeFromLeft( PAD_SM );
 			// Row 1: PluginMode buttons
-			buttonBounds.removeFromLeft( BTN_GAP / 2 );
+			buttonBounds.removeFromLeft( PAD_SM / 2 );
 			mBtnPro.setBounds( buttonBounds.removeFromLeft( btnW ) );
-			buttonBounds.removeFromLeft( BTN_GAP );
+			buttonBounds.removeFromLeft( PAD_SM );
 			mBtnMelody.setBounds( buttonBounds.removeFromLeft( btnW ) );
-			buttonBounds.removeFromLeft( BTN_GAP );
+			buttonBounds.removeFromLeft( PAD_SM );
 			mBtnDrums.setBounds( buttonBounds.removeFromLeft( btnW ) );
-			buttonBounds.removeFromLeft( BTN_GAP );
+			buttonBounds.removeFromLeft( PAD_SM );
 			mBtnSilica.setBounds( buttonBounds.removeFromLeft( btnW ) );
-			buttonBounds.removeFromLeft( BTN_GAP );
+			buttonBounds.removeFromLeft( PAD_SM );
 			mBtnScale.setBounds( buttonBounds.removeFromLeft( btnW ) );
 		}
 
@@ -214,9 +214,7 @@ namespace plop::ui {
 		}
 
 	 private:
-		static constexpr int PADDING = 6;
-		static constexpr int ROW_H   = 26;
-		static constexpr int BTN_GAP = 6;
+		static constexpr int ROW_H = 26;
 
 		const Callbacks mCbs;
 
@@ -241,19 +239,19 @@ namespace plop::ui {
 		bool               mEditorActive = false;
 
 		int modeSettingsY() const {
-			return PADDING + ROW_H + PADDING + ROW_H + PADDING;
+			return PAD_SM + ROW_H + PAD_SM + ROW_H + PAD_SM;
 		}
 
 		::juce::Rectangle<int> silicaPeriodRect() const {
-			return { PADDING, modeSettingsY(), getWidth() - 2 * PADDING, ROW_H };
+			return { PAD_SM, modeSettingsY(), getWidth() - 2 * PAD_SM, ROW_H };
 		}
 
 		::juce::Rectangle<int> scaleRootRect() const {
-			return { PADDING, modeSettingsY(), getWidth() - 2 * PADDING, ROW_H };
+			return { PAD_SM, modeSettingsY(), getWidth() - 2 * PAD_SM, ROW_H };
 		}
 
 		::juce::Rectangle<int> scaleTypeRect() const {
-			return { PADDING, modeSettingsY() + ROW_H + PADDING, getWidth() - 2 * PADDING, ROW_H };
+			return { PAD_SM, modeSettingsY() + ROW_H + PAD_SM, getWidth() - 2 * PAD_SM, ROW_H };
 		}
 
 		void fireMode( PluginMode mode ) {

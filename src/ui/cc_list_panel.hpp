@@ -143,7 +143,7 @@ namespace plop::ui {
 			g.fillRect( 0, 0, getWidth(), HEADER_H );
 
 			// Collapse/expand triangle
-			const float  triX = static_cast<float>( PADDING );
+			const float  triX = static_cast<float>( PAD_MD );
 			const float  triY = static_cast<float>( HEADER_H ) / 2.0f;
 			::juce::Path tri;
 			if ( mCollapsed ) {
@@ -156,7 +156,7 @@ namespace plop::ui {
 
 			g.setColour( ::juce::Colours::white );
 			g.setFont( ::juce::Font( FONT_LG, ::juce::Font::bold ) );
-			g.drawText( "CC Events", PADDING + 14, 0, getWidth() - PADDING - 14, HEADER_H, ::juce::Justification::centredLeft );
+			g.drawText( "CC Events", PAD_MD + 14, 0, getWidth() - PAD_MD - 14, HEADER_H, ::juce::Justification::centredLeft );
 
 			if ( mCollapsed )
 				return;
@@ -170,11 +170,11 @@ namespace plop::ui {
 
 			g.setColour( colours::offWhite );
 			g.setFont( FONT_SM );
-			const int y_cols = HEADER_H + 4;
-			g.drawText( "CC", PADDING, y_cols, 55, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Period", PADDING + 111, y_cols, 50, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Offset", PADDING + 161, y_cols, 50, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Ch", PADDING + 205, y_cols, 22, 20, ::juce::Justification::centredLeft );
+			const int y_cols = HEADER_H + PAD_SM;
+			g.drawText( "CC", PAD_MD, y_cols, 55, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Period", PAD_MD + 111, y_cols, 50, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Offset", PAD_MD + 161, y_cols, 50, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Ch", PAD_MD + 205, y_cols, 22, 20, ::juce::Justification::centredLeft );
 
 			g.setColour( colours::borderLine );
 			g.drawHorizontalLine( TOTAL_HEADER_H - 2, 0.0f, static_cast<float>( getWidth() ) );
@@ -204,9 +204,8 @@ namespace plop::ui {
 		}
 
 	 private:
-		static constexpr int PADDING        = 8;
 		static constexpr int HEADER_H       = 30;
-		static constexpr int TOTAL_HEADER_H = HEADER_H + 4 + 22; // 56
+		static constexpr int TOTAL_HEADER_H = HEADER_H + PAD_SM + 22; // 56
 		static constexpr int ADD_BTN_H      = 36;
 
 		const Callbacks mCbs;
@@ -214,7 +213,7 @@ namespace plop::ui {
 		bool            mCollapsed = true;
 
 		::juce::Rectangle<int> addButtonRect() const {
-			return { PADDING, getHeight() - ADD_BTN_H + 7, getWidth() - 2 * PADDING, 22 };
+			return { PAD_MD, getHeight() - ADD_BTN_H + 7, getWidth() - 2 * PAD_MD, 22 };
 		}
 
 		void syncRowsSize() {
@@ -375,8 +374,7 @@ namespace plop::ui {
 
 		 private:
 			enum class Field { None, Number, Period, Offset, Channel };
-			static constexpr int PADDING = 8;
-			static constexpr int ROW_H   = 28;
+			static constexpr int ROW_H = 28;
 
 			std::vector<PeriodicCC> mCcs;
 			::juce::TextEditor      mEditor;
@@ -390,23 +388,23 @@ namespace plop::ui {
 			PeriodicCC mDragStartCc = {};
 
 			::juce::Rectangle<int> numberRect( int i ) const {
-				return { PADDING, i * ROW_H, 55, ROW_H };
+				return { PAD_MD, i * ROW_H, 55, ROW_H };
 			}
 			::juce::Rectangle<int> periodRect( int i ) const {
-				return { PADDING + 111, i * ROW_H, 50, ROW_H };
+				return { PAD_MD + 111, i * ROW_H, 50, ROW_H };
 			}
 			::juce::Rectangle<int> offsetRect( int i ) const {
-				return { PADDING + 164, i * ROW_H, 50, ROW_H };
+				return { PAD_MD + 164, i * ROW_H, 50, ROW_H };
 			}
 
 			::juce::Rectangle<int> channelRect( int i ) const {
-				return { PADDING + 224, i * ROW_H, 22, ROW_H };
+				return { PAD_MD + 224, i * ROW_H, 22, ROW_H };
 			}
 			::juce::Rectangle<int> removeRect( int i ) const {
-				return { getWidth() - PADDING - 16, i * ROW_H + ( ROW_H - 16 ) / 2, 16, 16 };
+				return { getWidth() - PAD_MD - 16, i * ROW_H + ( ROW_H - 16 ) / 2, 16, 16 };
 			}
 			::juce::Rectangle<int> soloRect( int i ) const {
-				return { getWidth() - PADDING - 46, i * ROW_H + ( ROW_H - 16 ) / 2, 16, 16 };
+				return { getWidth() - PAD_MD - 46, i * ROW_H + ( ROW_H - 16 ) / 2, 16, 16 };
 			}
 
 			void drawCell( ::juce::Graphics &g, const ::juce::String &text, ::juce::Rectangle<int> bounds, bool isActive ) const {

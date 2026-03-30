@@ -107,13 +107,12 @@ namespace plop::ui {
 			mMidiExportButton.setBounds( w - 90, btn_y, 80, btn_h );
 
 			constexpr int PP_W    = 70;
-			constexpr int PP_GAP  = 6;
-			const int     ppRight = mIsStandalone ? w - 90 - PP_GAP - PP_W : w - 90;
+			const int ppRight = mIsStandalone ? w - 90 - PAD_SM - PP_W : w - 90;
 			if ( mIsStandalone )
 				mBtnPlayPause.setBounds( ppRight, btn_y, PP_W, btn_h );
 
 			const int pickerX = 220;
-			const int pickerW = ppRight - pickerX - PP_GAP;
+			const int pickerW = ppRight - pickerX - PAD_SM;
 			mPatternPicker.setBounds( pickerX, btn_y, pickerW, btn_h );
 
 			// ---- Left side: orbital + cc display ----

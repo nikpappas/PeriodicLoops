@@ -14,6 +14,12 @@ namespace plop::ui {
 	inline constexpr float FONT_LG = 13.0f; ///< Row content, action buttons, panel headers
 	inline constexpr float FONT_XL = 16.0f; ///< Prominent display values (time, BPM)
 
+	/// Padding / spacing scale.
+	inline constexpr int PAD_SM = 4;  ///< Tight gaps, small insets
+	inline constexpr int PAD_MD = 8;  ///< Standard component padding
+	inline constexpr int PAD_LG = 16; ///< Section separation
+	inline constexpr int PAD_XL = 32; ///< Large structural gaps
+
 	/// LookAndFeel override that applies BTN_CORNER_RADIUS to all TextButtons.
 	class PlopLookAndFeel : public ::juce::LookAndFeel_V4 {
 	 public:

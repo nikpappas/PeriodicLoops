@@ -60,14 +60,14 @@ namespace plop::ui {
 
 			// Swatches
 			const int count    = static_cast<int>( mPatterns.size() );
-			const int swatchX0 = toggleRect().getRight() + GAP;
-			const int swatchW  = count > 0 ? ( w - swatchX0 ) / count - GAP : 0;
+			const int swatchX0 = toggleRect().getRight() + PAD_SM;
+			const int swatchW  = count > 0 ? ( w - swatchX0 ) / count - PAD_SM : 0;
 			if ( swatchW < 10 )
 				return;
 
 			for ( int i = 0; i < count; ++i ) {
 				const auto &p = mPatterns[ i ];
-				const int   x = swatchX0 + i * ( swatchW + GAP );
+				const int   x = swatchX0 + i * ( swatchW + PAD_SM );
 				const auto  r = ::juce::Rectangle<int>{ x, 0, swatchW, h };
 
 				// Background fill
@@ -81,8 +81,8 @@ namespace plop::ui {
 				// Mini rhythm preview — dots for each fire time in 0..4 beats
 				const float     previewH = static_cast<float>( h ) * 0.38f;
 				const float     previewY = BTN_CORNER_RADIUS;
-				const float     previewX = static_cast<float>( x + 3 );
-				const float     previewW = static_cast<float>( swatchW - 6 );
+				const float     previewX = static_cast<float>( x + PAD_SM );
+				const float     previewW = static_cast<float>( swatchW - 2 * PAD_SM );
 				constexpr float WIN      = 4.0f; // preview shows 4 beats
 
 				// Find min/max pitch for y-mapping
@@ -133,7 +133,6 @@ namespace plop::ui {
 
 	 private:
 		static constexpr int TOGGLE_W = 52;
-		static constexpr int GAP      = 3;
 
 		const OnPickPattern     mOnPickPattern;
 		std::vector<PatternDef> mPatterns;
@@ -146,12 +145,12 @@ namespace plop::ui {
 
 		int swatchIndexAt( ::juce::Point<int> pos ) const {
 			const int count    = static_cast<int>( mPatterns.size() );
-			const int swatchX0 = toggleRect().getRight() + GAP;
-			const int swatchW  = count > 0 ? ( getWidth() - swatchX0 ) / count - GAP : 0;
+			const int swatchX0 = toggleRect().getRight() + PAD_SM;
+			const int swatchW  = count > 0 ? ( getWidth() - swatchX0 ) / count - PAD_SM : 0;
 			if ( swatchW < 10 )
 				return -1;
 			for ( int i = 0; i < count; ++i ) {
-				const int x = swatchX0 + i * ( swatchW + GAP );
+				const int x = swatchX0 + i * ( swatchW + PAD_SM );
 				if ( ::juce::Rectangle<int>{ x, 0, swatchW, getHeight() }.contains( pos ) )
 					return i;
 			}

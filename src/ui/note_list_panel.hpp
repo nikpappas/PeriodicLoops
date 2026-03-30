@@ -80,16 +80,16 @@ namespace plop::ui {
 			g.fillRect( 0, 0, getWidth(), HEADER_H );
 			g.setColour( ::juce::Colours::white );
 			g.setFont( ::juce::Font( FONT_LG, ::juce::Font::bold ) );
-			g.drawText( "Notes", PADDING, 0, getWidth() - PADDING, HEADER_H, ::juce::Justification::centredLeft );
+			g.drawText( "Notes", PAD_MD, 0, getWidth() - PAD_MD, HEADER_H, ::juce::Justification::centredLeft );
 
 			g.setColour( colours::offWhite );
 			g.setFont( FONT_SM );
-			const int y_cols = HEADER_H + 4;
-			g.drawText( mMode == PluginMode::drums ? "Drum" : "Pitch", PADDING + 22, y_cols, 65, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Period", PADDING + 111, y_cols, 46, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Offset", PADDING + 161, y_cols, mRows.showChannel() ? 40 : 64, 20, ::juce::Justification::centredLeft );
+			const int y_cols = HEADER_H + PAD_SM;
+			g.drawText( mMode == PluginMode::drums ? "Drum" : "Pitch", PAD_MD + 22, y_cols, 65, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Period", PAD_MD + 111, y_cols, 46, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Offset", PAD_MD + 161, y_cols, mRows.showChannel() ? 40 : 64, 20, ::juce::Justification::centredLeft );
 			if ( mRows.showChannel() )
-				g.drawText( "Ch", PADDING + 205, y_cols, 22, 20, ::juce::Justification::centredLeft );
+				g.drawText( "Ch", PAD_MD + 205, y_cols, 22, 20, ::juce::Justification::centredLeft );
 
 			g.setColour( colours::borderLine );
 			g.drawHorizontalLine( TOTAL_HEADER_H - 2, 0.0f, static_cast<float>( getWidth() ) );
@@ -113,16 +113,15 @@ namespace plop::ui {
 		}
 
 	 private:
-		static constexpr int PADDING        = 8;
 		static constexpr int HEADER_H       = 30;
-		static constexpr int TOTAL_HEADER_H = HEADER_H + 4 + 22; // 56
+		static constexpr int TOTAL_HEADER_H = HEADER_H + PAD_SM + 22; // 56
 		static constexpr int ADD_BTN_H      = 36;
 
 		const Callbacks mCbs;
 		PluginMode      mMode = PluginMode::melody;
 
 		::juce::Rectangle<int> addButtonRect() const {
-			return { PADDING, getHeight() - ADD_BTN_H + 7, getWidth() - 2 * PADDING, 22 };
+			return { PAD_MD, getHeight() - ADD_BTN_H + 7, getWidth() - 2 * PAD_MD, 22 };
 		}
 
 		void syncRowsSize() {
@@ -320,7 +319,6 @@ namespace plop::ui {
 
 		 private:
 			enum class Field { None, Pitch, Period, Offset, Channel };
-			static constexpr int PADDING  = 8;
 			static constexpr int SWATCH_S = 14;
 			static constexpr int ROW_H    = 28;
 
@@ -340,22 +338,22 @@ namespace plop::ui {
 			PeriodicNote mDragStartNote = {};
 
 			::juce::Rectangle<int> swatchRect( int i ) const {
-				return { PADDING, i * ROW_H + ( ROW_H - SWATCH_S ) / 2, SWATCH_S, SWATCH_S };
+				return { PAD_MD, i * ROW_H + ( ROW_H - SWATCH_S ) / 2, SWATCH_S, SWATCH_S };
 			}
 			::juce::Rectangle<int> pitchRect( int i ) const {
-				return { PADDING + 22, i * ROW_H, 85, ROW_H };
+				return { PAD_MD + 22, i * ROW_H, 85, ROW_H };
 			}
 			::juce::Rectangle<int> periodRect( int i ) const {
-				return { PADDING + 111, i * ROW_H, 46, ROW_H };
+				return { PAD_MD + 111, i * ROW_H, 46, ROW_H };
 			}
 			::juce::Rectangle<int> offsetRect( int i ) const {
-				return { PADDING + 161, i * ROW_H, mShowChannel ? 40 : 64, ROW_H };
+				return { PAD_MD + 161, i * ROW_H, mShowChannel ? 40 : 64, ROW_H };
 			}
 			::juce::Rectangle<int> channelRect( int i ) const {
-				return { PADDING + 205, i * ROW_H, 22, ROW_H };
+				return { PAD_MD + 205, i * ROW_H, 22, ROW_H };
 			}
 			::juce::Rectangle<int> removeRect( int i ) const {
-				return { getWidth() - PADDING - 16, i * ROW_H + ( ROW_H - 16 ) / 2, 16, 16 };
+				return { getWidth() - PAD_MD - 16, i * ROW_H + ( ROW_H - 16 ) / 2, 16, 16 };
 			}
 
 			::juce::Colour colourFor( int i ) const {

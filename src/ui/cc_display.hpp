@@ -148,7 +148,7 @@ namespace plop::ui {
 				// Label (drawn over the left edge of the wave)
 				g.setColour( colours::offWhite );
 				g.setFont( FONT_SM );
-				g.drawText( ccDisplayName( cc.number ), 4, y + ( LANE_H - 14 ) / 2, LABEL_W, 14, ::juce::Justification::centredLeft );
+				g.drawText( ccDisplayName( cc.number ), PAD_SM, y + ( LANE_H - 14 ) / 2, LABEL_W, 14, ::juce::Justification::centredLeft );
 
 				// DisabledOverlay if cc is disabled
 				if ( isDisabled ) {
