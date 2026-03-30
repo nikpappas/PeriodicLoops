@@ -88,10 +88,10 @@ namespace plop::ui {
 			g.setFont( 11.0f );
 			const int y_cols = kHeaderH + 4;
 			g.drawText( mMode == PluginMode::Drums ? "Drum" : "Pitch", kPadding + 22, y_cols, 65, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Period", kPadding + 91, y_cols, 46, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Offset", kPadding + 141, y_cols, mRows.showChannel() ? 40 : 64, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Period", kPadding + 111, y_cols, 46, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Offset", kPadding + 161, y_cols, mRows.showChannel() ? 40 : 64, 20, ::juce::Justification::centredLeft );
 			if ( mRows.showChannel() )
-				g.drawText( "Ch", kPadding + 185, y_cols, 22, 20, ::juce::Justification::centredLeft );
+				g.drawText( "Ch", kPadding + 205, y_cols, 22, 20, ::juce::Justification::centredLeft );
 
 			g.setColour( ::juce::Colour( 0xff333344 ) );
 			g.drawHorizontalLine( kTotalHeaderH - 2, 0.0f, static_cast<float>( getWidth() ) );
@@ -340,16 +340,16 @@ namespace plop::ui {
 				return { kPadding, i * row_h + ( row_h - swatch_s ) / 2, swatch_s, swatch_s };
 			}
 			::juce::Rectangle<int> pitchRect( int i ) const {
-				return { kPadding + 22, i * row_h, 65, row_h };
+				return { kPadding + 22, i * row_h, 85, row_h };
 			}
 			::juce::Rectangle<int> periodRect( int i ) const {
-				return { kPadding + 91, i * row_h, 46, row_h };
+				return { kPadding + 111, i * row_h, 46, row_h };
 			}
 			::juce::Rectangle<int> offsetRect( int i ) const {
-				return { kPadding + 141, i * row_h, mShowChannel ? 40 : 64, row_h };
+				return { kPadding + 161, i * row_h, mShowChannel ? 40 : 64, row_h };
 			}
 			::juce::Rectangle<int> channelRect( int i ) const {
-				return { kPadding + 185, i * row_h, 22, row_h };
+				return { kPadding + 205, i * row_h, 22, row_h };
 			}
 			::juce::Rectangle<int> removeRect( int i ) const {
 				return { getWidth() - kPadding - 16, i * row_h + ( row_h - 16 ) / 2, 16, 16 };

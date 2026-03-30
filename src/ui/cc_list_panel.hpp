@@ -167,9 +167,9 @@ namespace plop::ui {
 			g.setFont( 11.0f );
 			const int y_cols = kHeaderH + 4;
 			g.drawText( "CC", kPadding, y_cols, 55, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Period", kPadding + 58, y_cols, 50, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Offset", kPadding + 111, y_cols, 50, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Ch", kPadding + 164, y_cols, 22, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Period", kPadding + 111, y_cols, 50, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Offset", kPadding + 161, y_cols, 50, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Ch", kPadding + 205, y_cols, 22, 20, ::juce::Justification::centredLeft );
 
 			g.setColour( ::juce::Colour( 0xff333344 ) );
 			g.drawHorizontalLine( kTotalHeaderH - 2, 0.0f, static_cast<float>( getWidth() ) );
@@ -290,6 +290,15 @@ namespace plop::ui {
 						PeriodicCC updated = mCcs[ i ];
 						updated.solo       = !updated.solo;
 						onCcChanged( i, updated );
+						if ( !e.mods.isCtrlDown() ) {
+							for ( int j = 0; j < static_cast<int>( mCcs.size() ); ++j ) {
+								if ( j == i || !mCcs[ j ].solo )
+									continue;
+								PeriodicCC other = mCcs[ j ];
+								other.solo       = false;
+								onCcChanged( j, other );
+							}
+						}
 						return;
 					}
 					Field f = Field::None;
@@ -385,13 +394,14 @@ namespace plop::ui {
 				return { kPadding, i * row_h, 55, row_h };
 			}
 			::juce::Rectangle<int> periodRect( int i ) const {
-				return { kPadding + 58, i * row_h, 50, row_h };
-			}
-			::juce::Rectangle<int> offsetRect( int i ) const {
 				return { kPadding + 111, i * row_h, 50, row_h };
 			}
+			::juce::Rectangle<int> offsetRect( int i ) const {
+				return { kPadding + 164, i * row_h, 50, row_h };
+			}
+
 			::juce::Rectangle<int> channelRect( int i ) const {
-				return { kPadding + 164, i * row_h, 22, row_h };
+				return { kPadding + 224, i * row_h, 22, row_h };
 			}
 			::juce::Rectangle<int> removeRect( int i ) const {
 				return { getWidth() - kPadding - 16, i * row_h + ( row_h - 16 ) / 2, 16, 16 };

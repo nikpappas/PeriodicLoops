@@ -56,13 +56,13 @@ namespace plop::ui {
 	/// Push state each timer tick via setCCs() + setCurrentBeat() then repaint().
 	class CcDisplay : public ::juce::Component {
 	 public:
-		static constexpr int k_lane_h  = 42;
+		static constexpr int kLaneH    = 42;
 		static constexpr int k_label_w = 62;
 
 		CcDisplay() {
 		}
 		int getPreferredHeight() const {
-			return ::juce::jmax( k_lane_h, static_cast<int>( mCcs.size() ) * k_lane_h );
+			return ::juce::jmax( kLaneH, static_cast<int>( mCcs.size() ) * kLaneH );
 		}
 
 		void setCCs( std::vector<PeriodicCC> ccs ) {
@@ -87,14 +87,22 @@ namespace plop::ui {
 			constexpr float k_cursor_t = 0.25f;
 			const float     beatStart  = mCurrentBeat - k_window * k_cursor_t;
 			const int       w          = getWidth();
+			auto            isAnySolo  = false;
+			for ( int i = 0; i < static_cast<int>( mCcs.size() ); ++i ) {
+				if ( mCcs[ i ].solo ) {
+					isAnySolo = true;
+					break;
+				}
+			}
 
 			for ( int i = 0; i < static_cast<int>( mCcs.size() ); ++i ) {
-				const auto &cc = mCcs[ i ];
-				const int   y  = i * k_lane_h;
+				const auto &cc         = mCcs[ i ];
+				const auto  isDisabled = isAnySolo && !cc.solo;
+				const int   y          = i * kLaneH;
 
 				// Lane background
 				g.setColour( i % 2 == 0 ? ::juce::Colour( 0xff12121f ) : ::juce::Colour( 0xff0b0b18 ) );
-				g.fillRect( 0, y, w, k_lane_h );
+				g.fillRect( 0, y, w, kLaneH );
 
 				if ( cc.period <= 0.0f )
 					continue;
@@ -103,12 +111,12 @@ namespace plop::ui {
 				g.setColour( colours::subtleGrey );
 				for ( float b = std::ceil( beatStart ); b < beatStart + k_window; b += 1.0f ) {
 					const int gx = static_cast<int>( ( b - beatStart ) / k_window * w );
-					g.drawVerticalLine( gx, static_cast<float>( y ), static_cast<float>( y + k_lane_h ) );
+					g.drawVerticalLine( gx, static_cast<float>( y ), static_cast<float>( y + kLaneH ) );
 				}
 
 				// Waveform
-				const int   margin = static_cast<int>( k_lane_h * 0.12f );
-				const float waveH  = static_cast<float>( k_lane_h - 2 * margin );
+				const int   margin = static_cast<int>( kLaneH * 0.12f );
+				const float waveH  = static_cast<float>( kLaneH - 2 * margin );
 
 				::juce::Path wave;
 				for ( int px = 0; px < w; ++px ) {
@@ -120,13 +128,13 @@ namespace plop::ui {
 					else
 						wave.lineTo( static_cast<float>( px ), py );
 				}
-				g.setColour( colours::accentBlue.withAlpha( 0.75f ) );
+				g.setColour( colours::accentBlue.withAlpha( isDisabled ? 0.25f : 0.75f ) );
 				g.strokePath( wave, ::juce::PathStrokeType( 1.5f ) );
 
 				// Cursor line
 				const int cursorX = static_cast<int>( k_cursor_t * w );
 				g.setColour( ::juce::Colours::white.withAlpha( 0.25f ) );
-				g.drawVerticalLine( cursorX, static_cast<float>( y ), static_cast<float>( y + k_lane_h ) );
+				g.drawVerticalLine( cursorX, static_cast<float>( y ), static_cast<float>( y + kLaneH ) );
 
 				// Current-value dot on the waveform
 				const float curVal = 0.5f + 0.5f * std::sin( 2.0f * 3.14159265f * ( mCurrentBeat + cc.offset ) / cc.period );
@@ -137,11 +145,17 @@ namespace plop::ui {
 				// Label (drawn over the left edge of the wave)
 				g.setColour( colours::offWhite );
 				g.setFont( 11.0f );
-				g.drawText( ccDisplayName( cc.number ), 4, y + ( k_lane_h - 14 ) / 2, k_label_w, 14, ::juce::Justification::centredLeft );
+				g.drawText( ccDisplayName( cc.number ), 4, y + ( kLaneH - 14 ) / 2, k_label_w, 14, ::juce::Justification::centredLeft );
+
+				// DisabledOverlay if cc is disabled
+				if ( isDisabled ) {
+					g.setColour( colours::subtleGrey.withAlpha( 0.6f ) );
+					g.fillRect( 0, y, w, kLaneH );
+				}
 
 				// Separator
 				g.setColour( colours::subtleGrey );
-				g.drawHorizontalLine( y + k_lane_h - 1, 0.0f, static_cast<float>( w ) );
+				g.drawHorizontalLine( y + kLaneH - 1, 0.0f, static_cast<float>( w ) );
 			}
 		}
 
