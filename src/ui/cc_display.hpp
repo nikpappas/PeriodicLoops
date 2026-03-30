@@ -8,6 +8,7 @@
 
 #include "music/midi.hpp"
 #include "ui/colours.hpp"
+#include "ui/ui_constants.hpp"
 
 namespace plop::ui {
 
@@ -77,7 +78,7 @@ namespace plop::ui {
 
 			if ( mCcs.empty() ) {
 				g.setColour( ::juce::Colours::grey.withAlpha( 0.3f ) );
-				g.setFont( 12.0f );
+				g.setFont( FONT_MD );
 				g.drawText( "No CC events", getLocalBounds(), ::juce::Justification::centred );
 				return;
 			}
@@ -146,7 +147,7 @@ namespace plop::ui {
 
 				// Label (drawn over the left edge of the wave)
 				g.setColour( colours::offWhite );
-				g.setFont( 11.0f );
+				g.setFont( FONT_SM );
 				g.drawText( ccDisplayName( cc.number ), 4, y + ( LANE_H - 14 ) / 2, LABEL_W, 14, ::juce::Justification::centredLeft );
 
 				// DisabledOverlay if cc is disabled

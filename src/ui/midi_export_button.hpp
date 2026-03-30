@@ -9,6 +9,7 @@
 
 #include "music/midi.hpp"
 #include "ui/colours.hpp"
+#include "ui/ui_constants.hpp"
 
 namespace plop::ui {
 
@@ -80,11 +81,11 @@ namespace plop::ui {
 		void paint( ::juce::Graphics &g ) override {
 			const auto b = getLocalBounds().toFloat();
 			g.setColour( mHovered ? colours::midiExportBtnHover : colours::midiExportBtnNormal );
-			g.fillRoundedRectangle( b, 4.0f );
+			g.fillRoundedRectangle( b, BTN_CORNER_RADIUS );
 			g.setColour( colours::midiExportBtnBorder );
-			g.drawRoundedRectangle( b.reduced( 0.5f ), 4.0f, 1.0f );
+			g.drawRoundedRectangle( b.reduced( 0.5f ), BTN_CORNER_RADIUS, 1.0f );
 			g.setColour( ::juce::Colours::white );
-			g.setFont( 12.0f );
+			g.setFont( FONT_LG );
 			g.drawText( "Drag MIDI", getLocalBounds(), ::juce::Justification::centred );
 		}
 

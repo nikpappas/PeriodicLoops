@@ -8,6 +8,7 @@
 
 #include "music/midi.hpp"
 #include "ui/colours.hpp"
+#include "ui/ui_constants.hpp"
 
 namespace plop::ui {
 
@@ -23,9 +24,7 @@ namespace plop::ui {
 			{ "8ths", colours::paletteGreen, { { 60, 0.5f, 0.0f, 0.25f, 0 } } },
 			{ "Off+On", colours::paletteOrange, { { 60, 1.0f, 0.0f, 0.25f, 0 }, { 64, 1.0f, 0.5f, 0.25f, 0 } } },
 			{ "3:4", colours::palettePurple, { { 60, 4.0f / 3.0f, 0.0f, 0.15f, 0 }, { 64, 1.0f, 0.0f, 0.15f, 0 } } },
-			{ "Waltz",
-			  colours::paletteRed,
-			  { { 60, 3.0f, 0.0f, 0.4f, 0 }, { 64, 3.0f, 1.0f, 0.3f, 0 }, { 67, 3.0f, 2.0f, 0.3f, 0 } } },
+			{ "Waltz", colours::paletteRed, { { 60, 3.0f, 0.0f, 0.4f, 0 }, { 64, 3.0f, 1.0f, 0.3f, 0 }, { 67, 3.0f, 2.0f, 0.3f, 0 } } },
 			{ "Kick+Hi",
 			  colours::paletteBrown,
 			  { { 36, 2.0f, 0.0f, 0.1f, 0 }, { 38, 2.0f, 1.0f, 0.1f, 0 }, { 42, 0.5f, 0.0f, 0.05f, 0 } } },
@@ -38,8 +37,8 @@ namespace plop::ui {
 	 public:
 		using OnPickPattern = std::function<void( const std::vector<PeriodicNote> &, bool add )>;
 
-		explicit PatternPicker( OnPickPattern onPickPattern )
-		    : mOnPickPattern( std::move( onPickPattern ) ), mPatterns( makeBuiltinPatterns() ) {
+		explicit PatternPicker( OnPickPattern onPickPattern ) :
+				  mOnPickPattern( std::move( onPickPattern ) ), mPatterns( makeBuiltinPatterns() ) {
 		}
 
 		void paint( ::juce::Graphics &g ) override {
@@ -52,11 +51,11 @@ namespace plop::ui {
 			// Add/replace toggle button
 			const auto toggleR = toggleRect();
 			g.setColour( mAddMode ? colours::addBg : colours::replaceModeBg );
-			g.fillRoundedRectangle( toggleR.toFloat(), 3.0f );
+			g.fillRoundedRectangle( toggleR.toFloat(), BTN_CORNER_RADIUS );
 			g.setColour( mAddMode ? colours::addAccent : colours::replaceModeAccent );
-			g.drawRoundedRectangle( toggleR.toFloat(), 3.0f, 1.0f );
+			g.drawRoundedRectangle( toggleR.toFloat(), BTN_CORNER_RADIUS, 1.0f );
 			g.setColour( ::juce::Colours::white );
-			g.setFont( 11.0f );
+			g.setFont( FONT_SM );
 			g.drawText( mAddMode ? "+ Add" : "Replace", toggleR, ::juce::Justification::centred );
 
 			// Swatches
@@ -73,15 +72,15 @@ namespace plop::ui {
 
 				// Background fill
 				g.setColour( p.colour.withAlpha( mHoveredIndex == i ? 0.35f : 0.15f ) );
-				g.fillRoundedRectangle( r.toFloat(), 3.0f );
+				g.fillRoundedRectangle( r.toFloat(), BTN_CORNER_RADIUS );
 
 				// Border
 				g.setColour( p.colour.withAlpha( mHoveredIndex == i ? 0.9f : 0.45f ) );
-				g.drawRoundedRectangle( r.toFloat(), 3.0f, 1.0f );
+				g.drawRoundedRectangle( r.toFloat(), BTN_CORNER_RADIUS, 1.0f );
 
 				// Mini rhythm preview — dots for each fire time in 0..4 beats
 				const float     previewH = static_cast<float>( h ) * 0.38f;
-				const float     previewY = 3.0f;
+				const float     previewY = BTN_CORNER_RADIUS;
 				const float     previewX = static_cast<float>( x + 3 );
 				const float     previewW = static_cast<float>( swatchW - 6 );
 				constexpr float WIN      = 4.0f; // preview shows 4 beats
@@ -107,7 +106,7 @@ namespace plop::ui {
 
 				// Name label
 				g.setColour( ::juce::Colours::white.withAlpha( 0.85f ) );
-				g.setFont( 11.0f );
+				g.setFont( FONT_SM );
 				g.drawText( p.name, r.withTrimmedTop( h / 2 ), ::juce::Justification::centred );
 			}
 		}

@@ -11,6 +11,7 @@
 #include "music/scales.hpp"
 #include "processor/engine.hpp"
 #include "ui/colours.hpp"
+#include "ui/ui_constants.hpp"
 
 namespace plop::ui {
 
@@ -78,11 +79,11 @@ namespace plop::ui {
 			g.setColour( colours::noteHeaderBg );
 			g.fillRect( 0, 0, getWidth(), HEADER_H );
 			g.setColour( ::juce::Colours::white );
-			g.setFont( ::juce::Font( 13.0f, ::juce::Font::bold ) );
+			g.setFont( ::juce::Font( FONT_LG, ::juce::Font::bold ) );
 			g.drawText( "Notes", PADDING, 0, getWidth() - PADDING, HEADER_H, ::juce::Justification::centredLeft );
 
 			g.setColour( colours::offWhite );
-			g.setFont( 11.0f );
+			g.setFont( FONT_SM );
 			const int y_cols = HEADER_H + 4;
 			g.drawText( mMode == PluginMode::drums ? "Drum" : "Pitch", PADDING + 22, y_cols, 65, 20, ::juce::Justification::centredLeft );
 			g.drawText( "Period", PADDING + 111, y_cols, 46, 20, ::juce::Justification::centredLeft );
@@ -95,9 +96,9 @@ namespace plop::ui {
 
 			const auto addB = addButtonRect();
 			g.setColour( colours::addBg );
-			g.fillRoundedRectangle( addB.toFloat(), 4.0f );
+			g.fillRoundedRectangle( addB.toFloat(), BTN_CORNER_RADIUS );
 			g.setColour( colours::addAccent );
-			g.setFont( 13.0f );
+			g.setFont( FONT_LG );
 			g.drawText( "+ Add Note", addB, ::juce::Justification::centred );
 		}
 
@@ -179,7 +180,7 @@ namespace plop::ui {
 
 			void paint( ::juce::Graphics &g ) override {
 				g.fillAll( colours::panelBg );
-				g.setFont( 13.0f );
+				g.setFont( FONT_LG );
 				for ( int i = 0; i < static_cast<int>( mNotes.size() ); ++i ) {
 					const auto &note = mNotes[ i ];
 					const int   y    = i * ROW_H;
@@ -213,11 +214,11 @@ namespace plop::ui {
 
 					const auto rb = removeRect( i );
 					g.setColour( colours::removeBg );
-					g.fillRoundedRectangle( rb.toFloat(), 3.0f );
+					g.fillRoundedRectangle( rb.toFloat(), BTN_CORNER_RADIUS );
 					g.setColour( colours::removeAccent );
-					g.setFont( 11.0f );
+					g.setFont( FONT_SM );
 					g.drawText( "x", rb, ::juce::Justification::centred );
-					g.setFont( 13.0f );
+					g.setFont( FONT_LG );
 				}
 			}
 

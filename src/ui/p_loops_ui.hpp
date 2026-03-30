@@ -10,6 +10,8 @@
 #include "music/scales.hpp"
 #include "processor/periodic_loops.hpp"
 #include "ui/cc_display.hpp"
+#include "ui/colours.hpp"
+#include "ui/ui_constants.hpp"
 #include "ui/cc_list_panel.hpp"
 #include "ui/midi_export_button.hpp"
 #include "ui/note_list_panel.hpp"
@@ -25,6 +27,7 @@ namespace plop::ui {
 			  , private ::juce::Timer
 			  , private ::juce::ChangeListener {
 	 private:
+		PlopLookAndFeel          mLookAndFeel;
 		::plop::p_loops::PLoops &mPluginInstanceRef;
 		TimeDisplay              mTimeDisplay;
 		OrbitalDisplay           mOrbitalDisplay;
@@ -34,8 +37,10 @@ namespace plop::ui {
 		MidiExportButton         mMidiExportButton;
 		PatternPicker            mPatternPicker;
 		SettingsPanel            mSettingsPanel;
-		int64_t                  mLastTime    = 0;
-		int                      mLastCcCount = -1;
+		::juce::TextButton       mBtnPlayPause{ "Play" };
+		bool                     mIsStandalone = false;
+		int64_t                  mLastTime     = 0;
+		int                      mLastCcCount  = -1;
 
 		PluginMode mMode = PluginMode::melody;
 
@@ -101,8 +106,14 @@ namespace plop::ui {
 			mTimeDisplay.setBounds( 10, btn_y, 200, btn_h );
 			mMidiExportButton.setBounds( w - 90, btn_y, 80, btn_h );
 
+			constexpr int PP_W    = 70;
+			constexpr int PP_GAP  = 6;
+			const int     ppRight = mIsStandalone ? w - 90 - PP_GAP - PP_W : w - 90;
+			if ( mIsStandalone )
+				mBtnPlayPause.setBounds( ppRight, btn_y, PP_W, btn_h );
+
 			const int pickerX = 220;
-			const int pickerW = ( w - 90 ) - pickerX - 16;
+			const int pickerW = ppRight - pickerX - PP_GAP;
 			mPatternPicker.setBounds( pickerX, btn_y, pickerW, btn_h );
 
 			// ---- Left side: orbital + cc display ----
@@ -229,36 +240,29 @@ namespace plop::ui {
 					  mNoteColours.push_back( nextPaletteColour() );
 				  }
 			  } ),
-			  mSettingsPanel(
-				 {
-					.onModeChanged         = [ this ]( PluginMode mode ) { applyMode( mode ); },
-					.onSilicaPeriodChanged = [ this ]( float period ) { mPluginInstanceRef.setSilicaPeriod( period ); },
-					.onScaleChanged =
-					  [ this ]( int root, int typeIdx ) {
-						  mPluginInstanceRef.setScaleRoot( root );
-						  mPluginInstanceRef.setScaleType( typeIdx );
-						  mNoteListPanel.setScaleConstraint( root, typeIdx );
-						  if ( mMode == PluginMode::scale ) {
-							  const auto &pc    = music::SCALES[ static_cast<size_t>( typeIdx ) ].pitchClasses;
-							  const auto &notes = mPluginInstanceRef.getNotes();
-							  for ( int i = 0; i < static_cast<int>( notes.size() ); ++i ) {
-								  const int snapped = music::snapToScale( notes[ i ].pitch, root, pc );
-								  if ( snapped != notes[ i ].pitch ) {
-									  auto updated  = notes[ i ];
-									  updated.pitch = snapped;
-									  mPluginInstanceRef.updateNote( i, updated );
-								  }
-							  }
-						  }
-					  },
-					.onPlayPauseToggled =
-					  [ this ] {
-						  const bool next = !mPluginInstanceRef.isStandalonePlaying();
-						  mPluginInstanceRef.setStandalonePlaying( next );
-						  mSettingsPanel.setPlaying( next );
-					  },
-				 },
-				 owner.wrapperType == ::juce::AudioProcessor::wrapperType_Standalone ) {
+			  mSettingsPanel( {
+				 .onModeChanged         = [ this ]( PluginMode mode ) { applyMode( mode ); },
+				 .onSilicaPeriodChanged = [ this ]( float period ) { mPluginInstanceRef.setSilicaPeriod( period ); },
+				 .onScaleChanged =
+					[ this ]( int root, int typeIdx ) {
+						mPluginInstanceRef.setScaleRoot( root );
+						mPluginInstanceRef.setScaleType( typeIdx );
+						mNoteListPanel.setScaleConstraint( root, typeIdx );
+						if ( mMode == PluginMode::scale ) {
+							const auto &pc    = music::SCALES[ static_cast<size_t>( typeIdx ) ].pitchClasses;
+							const auto &notes = mPluginInstanceRef.getNotes();
+							for ( int i = 0; i < static_cast<int>( notes.size() ); ++i ) {
+								const int snapped = music::snapToScale( notes[ i ].pitch, root, pc );
+								if ( snapped != notes[ i ].pitch ) {
+									auto updated  = notes[ i ];
+									updated.pitch = snapped;
+									mPluginInstanceRef.updateNote( i, updated );
+								}
+							}
+						}
+					},
+			  } ),
+			  mIsStandalone( owner.wrapperType == ::juce::AudioProcessor::wrapperType_Standalone ) {
 		for ( size_t i = 0; i < owner.getNotes().size(); ++i )
 			mNoteColours.push_back( nextPaletteColour() );
 
@@ -271,17 +275,34 @@ namespace plop::ui {
 		mSettingsPanel.setScaleRoot( owner.getScaleRoot() );
 		mSettingsPanel.setScaleType( owner.getScaleType() );
 		mNoteListPanel.setScaleConstraint( owner.getScaleRoot(), owner.getScaleType() );
-		mSettingsPanel.setPlaying( owner.isStandalonePlaying() );
+
+		if ( mIsStandalone ) {
+			const bool playing = owner.isStandalonePlaying();
+			mBtnPlayPause.setColour( ::juce::TextButton::buttonOnColourId, colours::btnAccentColourAlt );
+			mBtnPlayPause.setClickingTogglesState( false );
+			mBtnPlayPause.setButtonText( playing ? "Pause" : "Play" );
+			mBtnPlayPause.setToggleState( playing, ::juce::dontSendNotification );
+			mBtnPlayPause.onClick = [ this ] {
+				const bool next = !mPluginInstanceRef.isStandalonePlaying();
+				mPluginInstanceRef.setStandalonePlaying( next );
+				mBtnPlayPause.setButtonText( next ? "Pause" : "Play" );
+				mBtnPlayPause.setToggleState( next, ::juce::dontSendNotification );
+			};
+		}
+
+		setLookAndFeel( &mLookAndFeel );
 
 		addAndMakeVisible( mTimeDisplay );
 		addAndMakeVisible( mOrbitalDisplay );
 		addAndMakeVisible( mCcDisplay );
-		mNoteListPanel.setShowChannel( owner.wrapperType == ::juce::AudioProcessor::wrapperType_Standalone );
+		mNoteListPanel.setShowChannel( mIsStandalone );
 		addAndMakeVisible( mNoteListPanel );
 		addAndMakeVisible( mCcListPanel );
 		addAndMakeVisible( mMidiExportButton );
 		addAndMakeVisible( mPatternPicker );
 		addAndMakeVisible( mSettingsPanel );
+		if ( mIsStandalone )
+			addAndMakeVisible( mBtnPlayPause );
 
 		setSize( 800, 600 );
 		setResizable( true, true );
@@ -289,6 +310,7 @@ namespace plop::ui {
 	}
 
 	PLoopsUi::~PLoopsUi() {
+		setLookAndFeel( nullptr );
 		if ( mActiveSelector != nullptr )
 			mActiveSelector->removeChangeListener( this );
 		stopTimer();

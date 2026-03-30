@@ -3,6 +3,8 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+#include "ui/ui_constants.hpp"
+
 namespace plop::ui {
 
 	class TimeDisplay : public ::juce::Component {
@@ -16,7 +18,7 @@ namespace plop::ui {
 		void paint( ::juce::Graphics &g ) override {
 			g.fillAll( ::juce::Colours::black );
 			g.setColour( ::juce::Colours::white );
-			g.setFont( 16.0f );
+			g.setFont( FONT_XL );
 			g.drawFittedText( "Time: " + ::juce::String( mTime ), getLocalBounds(), ::juce::Justification::centred, 1 );
 		}
 

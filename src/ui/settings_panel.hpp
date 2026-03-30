@@ -9,6 +9,7 @@
 #include "processor/plugin_state.hpp"
 #include "ui/colours.hpp"
 #include "ui/note_list_panel.hpp"
+#include "ui/ui_constants.hpp"
 
 namespace plop::ui {
 
@@ -18,11 +19,9 @@ namespace plop::ui {
 			std::function<void( PluginMode )> onModeChanged;
 			std::function<void( float )>      onSilicaPeriodChanged;
 			std::function<void( int, int )>   onScaleChanged; // root, typeIndex
-			std::function<void()>             onPlayPauseToggled;
 		};
 
-		explicit SettingsPanel( Callbacks cbs, bool showPlayPause ) :
-				  mCbs( std::move( cbs ) ), mShowPlayPause( showPlayPause ) {
+		explicit SettingsPanel( Callbacks cbs ) : mCbs( std::move( cbs ) ) {
 			for ( auto *btn : { &mBtnPro, &mBtnMelody, &mBtnDrums, &mBtnSilica, &mBtnScale } ) {
 				btn->setClickingTogglesState( false );
 				btn->setColour( ::juce::TextButton::buttonOnColourId, colours::btnAccentColour );
@@ -34,16 +33,6 @@ namespace plop::ui {
 			mBtnDrums.onClick  = [ this ] { fireMode( PluginMode::drums ); };
 			mBtnSilica.onClick = [ this ] { fireMode( PluginMode::silica ); };
 			mBtnScale.onClick  = [ this ] { fireMode( PluginMode::scale ); };
-
-			if ( mShowPlayPause ) {
-				mBtnPlayPause.setColour( ::juce::TextButton::buttonOnColourId, colours::btnAccentColourAlt );
-				mBtnPlayPause.setClickingTogglesState( false );
-				mBtnPlayPause.onClick = [ this ] {
-					if ( mCbs.onPlayPauseToggled )
-						mCbs.onPlayPauseToggled();
-				};
-				addAndMakeVisible( mBtnPlayPause );
-			}
 		}
 
 		void setMode( PluginMode mode ) {
@@ -76,12 +65,6 @@ namespace plop::ui {
 			repaint();
 		}
 
-		void setPlaying( bool playing ) {
-			mPlaying = playing;
-			mBtnPlayPause.setButtonText( playing ? "Pause" : "Play" );
-			mBtnPlayPause.setToggleState( playing, ::juce::dontSendNotification );
-		}
-
 		int getPreferredHeight() const {
 			int h = PADDING + ROW_H; // mode buttons row 1
 			h += PADDING + ROW_H;    // mode buttons row 2
@@ -89,8 +72,6 @@ namespace plop::ui {
 				h += PADDING + ROW_H; // period
 			if ( mMode == PluginMode::scale )
 				h += PADDING + ROW_H + PADDING + ROW_H; // root + scale type
-			if ( mShowPlayPause )
-				h += PADDING + ROW_H; // play/pause
 			h += PADDING;
 			return h;
 		}
@@ -104,13 +85,13 @@ namespace plop::ui {
 				const bool active = mDragField == DragField::SilicaPeriod;
 				if ( active ) {
 					g.setColour( colours::inputBg );
-					g.fillRoundedRectangle( r.toFloat(), 3.0f );
+					g.fillRoundedRectangle( r.toFloat(), BTN_CORNER_RADIUS );
 				}
 				g.setColour( colours::offWhite );
-				g.setFont( 11.0f );
+				g.setFont( FONT_SM );
 				g.drawText( "Period", r.removeFromLeft( 48 ), ::juce::Justification::centredLeft );
 				g.setColour( ::juce::Colours::white );
-				g.setFont( 13.0f );
+				g.setFont( FONT_LG );
 				g.drawText( ::juce::String( mSilicaPeriod, 2 ) + " b", r, ::juce::Justification::centredLeft );
 			}
 
@@ -122,13 +103,13 @@ namespace plop::ui {
 					const bool active = mDragField == DragField::ScaleRoot;
 					if ( active ) {
 						g.setColour( colours::inputBg );
-						g.fillRoundedRectangle( r.toFloat(), 3.0f );
+						g.fillRoundedRectangle( r.toFloat(), BTN_CORNER_RADIUS );
 					}
 					g.setColour( colours::offWhite );
-					g.setFont( 11.0f );
+					g.setFont( FONT_SM );
 					g.drawText( "Root", r.removeFromLeft( 48 ), ::juce::Justification::centredLeft );
 					g.setColour( ::juce::Colours::white );
-					g.setFont( 13.0f );
+					g.setFont( FONT_LG );
 					g.drawText( music::NOTE_NAMES[ mScaleRoot ], r, ::juce::Justification::centredLeft );
 				}
 				// Scale type row
@@ -137,13 +118,13 @@ namespace plop::ui {
 					const bool active = mDragField == DragField::ScaleType;
 					if ( active ) {
 						g.setColour( colours::inputBg );
-						g.fillRoundedRectangle( r.toFloat(), 3.0f );
+						g.fillRoundedRectangle( r.toFloat(), BTN_CORNER_RADIUS );
 					}
 					g.setColour( colours::offWhite );
-					g.setFont( 11.0f );
+					g.setFont( FONT_SM );
 					g.drawText( "Scale", r.removeFromLeft( 48 ), ::juce::Justification::centredLeft );
 					g.setColour( ::juce::Colours::white );
-					g.setFont( 13.0f );
+					g.setFont( FONT_LG );
 					g.drawText( music::SCALES[ static_cast<size_t>( mScaleType ) ].name, r, ::juce::Justification::centredLeft );
 				}
 			}
@@ -173,11 +154,6 @@ namespace plop::ui {
 			mBtnSilica.setBounds( buttonBounds.removeFromLeft( btnW ) );
 			buttonBounds.removeFromLeft( BTN_GAP );
 			mBtnScale.setBounds( buttonBounds.removeFromLeft( btnW ) );
-
-			if ( mShowPlayPause ) {
-				const int ppY = getHeight() - PADDING - ROW_H;
-				mBtnPlayPause.setBounds( PADDING, ppY, getWidth() - 2 * PADDING, ROW_H );
-			}
 		}
 
 		void mouseDown( const ::juce::MouseEvent &e ) override {
@@ -243,20 +219,17 @@ namespace plop::ui {
 		static constexpr int BTN_GAP = 6;
 
 		const Callbacks mCbs;
-		const bool      mShowPlayPause;
 
 		::juce::TextButton mBtnPro{ "Pro" };
 		::juce::TextButton mBtnMelody{ "Melody" };
 		::juce::TextButton mBtnDrums{ "Drums" };
 		::juce::TextButton mBtnSilica{ "Silica" };
 		::juce::TextButton mBtnScale{ "Scale" };
-		::juce::TextButton mBtnPlayPause{ "Play" };
 
 		PluginMode mMode         = PluginMode::melody;
 		float      mSilicaPeriod = 4.0f;
 		int        mScaleRoot    = 0; // 0 = C
 		int        mScaleType    = 1; // Major
-		bool       mPlaying      = true;
 
 		enum class DragField { None, SilicaPeriod, ScaleRoot, ScaleType };
 		DragField mDragField      = DragField::None;

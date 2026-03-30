@@ -8,6 +8,7 @@
 
 #include "music/midi.hpp"
 #include "ui/colours.hpp"
+#include "ui/ui_constants.hpp"
 
 namespace plop::ui {
 
@@ -154,7 +155,7 @@ namespace plop::ui {
 			g.fillPath( tri );
 
 			g.setColour( ::juce::Colours::white );
-			g.setFont( ::juce::Font( 13.0f, ::juce::Font::bold ) );
+			g.setFont( ::juce::Font( FONT_LG, ::juce::Font::bold ) );
 			g.drawText( "CC Events", PADDING + 14, 0, getWidth() - PADDING - 14, HEADER_H, ::juce::Justification::centredLeft );
 
 			if ( mCollapsed )
@@ -162,13 +163,13 @@ namespace plop::ui {
 
 			const auto addB = addButtonRect();
 			g.setColour( colours::addBg );
-			g.fillRoundedRectangle( addB.toFloat(), 4.0f );
+			g.fillRoundedRectangle( addB.toFloat(), BTN_CORNER_RADIUS );
 			g.setColour( colours::addAccent );
-			g.setFont( 13.0f );
+			g.setFont( FONT_LG );
 			g.drawText( "+ Add CC", addB, ::juce::Justification::centred );
 
 			g.setColour( colours::offWhite );
-			g.setFont( 11.0f );
+			g.setFont( FONT_SM );
 			const int y_cols = HEADER_H + 4;
 			g.drawText( "CC", PADDING, y_cols, 55, 20, ::juce::Justification::centredLeft );
 			g.drawText( "Period", PADDING + 111, y_cols, 50, 20, ::juce::Justification::centredLeft );
@@ -248,7 +249,7 @@ namespace plop::ui {
 
 			void paint( ::juce::Graphics &g ) override {
 				g.fillAll( colours::panelBg );
-				g.setFont( 13.0f );
+				g.setFont( FONT_LG );
 				for ( int i = 0; i < static_cast<int>( mCcs.size() ); ++i ) {
 					const auto &cc = mCcs[ i ];
 					const int   y  = i * ROW_H;
@@ -266,19 +267,17 @@ namespace plop::ui {
 
 					const auto sb = soloRect( i );
 					g.setColour( colours::accentBlue );
-					g.fillRoundedRectangle( sb.toFloat(), 3.0f );
+					g.fillRoundedRectangle( sb.toFloat(), BTN_CORNER_RADIUS );
 					g.setColour( mCcs[ i ].solo ? ::juce::Colours::white : colours::offWhite );
-					g.setFont( 11.0f );
+					g.setFont( FONT_SM );
 					g.drawText( "S", sb, ::juce::Justification::centred );
-					g.setFont( 13.0f );
 
 					const auto rb = removeRect( i );
 					g.setColour( colours::removeBg );
-					g.fillRoundedRectangle( rb.toFloat(), 3.0f );
+					g.fillRoundedRectangle( rb.toFloat(), BTN_CORNER_RADIUS );
 					g.setColour( colours::offWhite );
-					g.setFont( 11.0f );
+					g.setFont( FONT_SM );
 					g.drawText( "x", rb, ::juce::Justification::centred );
-					g.setFont( 13.0f );
 				}
 			}
 
@@ -376,8 +375,8 @@ namespace plop::ui {
 
 		 private:
 			enum class Field { None, Number, Period, Offset, Channel };
-			static constexpr int PADDING  = 8;
-			static constexpr int ROW_H    = 28;
+			static constexpr int PADDING = 8;
+			static constexpr int ROW_H   = 28;
 
 			std::vector<PeriodicCC> mCcs;
 			::juce::TextEditor      mEditor;
