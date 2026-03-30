@@ -20,12 +20,12 @@
 
 namespace plop::ui {
 
-	class p_loops_ui
+	class PLoopsUi
 			  : public ::juce::AudioProcessorEditor
 			  , private ::juce::Timer
 			  , private ::juce::ChangeListener {
 	 private:
-		::plop::p_loops::p_loops &mPluginInstanceRef;
+		::plop::p_loops::PLoops &mPluginInstanceRef;
 		TimeDisplay               mTimeDisplay;
 		OrbitalDisplay            mOrbitalDisplay;
 		NoteListPanel             mNoteListPanel;
@@ -43,18 +43,18 @@ namespace plop::ui {
 		::juce::Component::SafePointer<::juce::ColourSelector> mActiveSelector;
 		int                                                    mEditingIndex = -1;
 
-		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR( p_loops_ui )
+		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR( PLoopsUi )
 
 	 public:
-		explicit p_loops_ui( ::plop::p_loops::p_loops &owner );
-		~p_loops_ui();
+		explicit PLoopsUi( ::plop::p_loops::PLoops &owner );
+		~PLoopsUi();
 
 	 private:
 		::juce::Colour nextPaletteColour() const {
 			static const ::juce::Colour palette[] = {
-				::juce::Colour( 0xff4fc3f7 ), ::juce::Colour( 0xffef5350 ), ::juce::Colour( 0xff66bb6a ),
-				::juce::Colour( 0xffffa726 ), ::juce::Colour( 0xffab47bc ), ::juce::Colour( 0xff26c6da ),
-				::juce::Colour( 0xffec407a ), ::juce::Colour( 0xff8d6e63 ),
+				colours::paletteBlue,   colours::paletteRed,    colours::paletteGreen,
+				colours::paletteOrange, colours::palettePurple, colours::paletteTeal,
+				colours::palettePink,   colours::paletteBrown,
 			};
 			return palette[ mNoteColours.size() % std::size( palette ) ];
 		}
@@ -175,7 +175,7 @@ namespace plop::ui {
 		}
 	};
 
-	p_loops_ui::p_loops_ui( ::plop::p_loops::p_loops &owner ) :
+	PLoopsUi::PLoopsUi( ::plop::p_loops::PLoops &owner ) :
 			  ::juce::AudioProcessorEditor( owner ),
 			  mPluginInstanceRef( owner ),
 			  mNoteListPanel( {
@@ -193,7 +193,7 @@ namespace plop::ui {
 						const float period   = isSilica ? mPluginInstanceRef.getSilicaPeriod() : 1.0f;
 						int         pitch    = isDrums ? 36 : 60;
 						if ( mMode == PluginMode::Scale ) {
-							const auto &pc = music::k_scales[ static_cast<size_t>( mPluginInstanceRef.getScaleType() ) ].pitchClasses;
+							const auto &pc = music::SCALES[ static_cast<size_t>( mPluginInstanceRef.getScaleType() ) ].pitchClasses;
 							pitch = music::snapToScale( pitch, mPluginInstanceRef.getScaleRoot(), pc );
 						}
 						PeriodicNote note{
@@ -240,7 +240,7 @@ namespace plop::ui {
 						  mPluginInstanceRef.setScaleType( typeIdx );
 						  mNoteListPanel.setScaleConstraint( root, typeIdx );
 						  if ( mMode == PluginMode::Scale ) {
-							  const auto &pc    = music::k_scales[ static_cast<size_t>( typeIdx ) ].pitchClasses;
+							  const auto &pc    = music::SCALES[ static_cast<size_t>( typeIdx ) ].pitchClasses;
 							  const auto &notes = mPluginInstanceRef.getNotes();
 							  for ( int i = 0; i < static_cast<int>( notes.size() ); ++i ) {
 								  const int snapped = music::snapToScale( notes[ i ].pitch, root, pc );
@@ -289,7 +289,7 @@ namespace plop::ui {
 		startTimerHz( 30 );
 	}
 
-	p_loops_ui::~p_loops_ui() {
+	PLoopsUi::~PLoopsUi() {
 		if ( mActiveSelector != nullptr )
 			mActiveSelector->removeChangeListener( this );
 		stopTimer();

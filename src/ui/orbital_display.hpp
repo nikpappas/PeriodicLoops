@@ -6,6 +6,8 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+#include "ui/colours.hpp"
+
 namespace plop::ui {
 
 	class OrbitalDisplay : public ::juce::Component {
@@ -18,14 +20,14 @@ namespace plop::ui {
 			float trackRadius; // normalised [0, 1] — maps to pixel radius in paint()
 		};
 
-		void setVoices( std::vector<VoiceState> voices ) {
+		void setVoices( const std::vector<VoiceState> &voices ) {
 			if ( voices.size() != mVoices.size() )
 				mTrigger.assign( voices.size(), 0 );
 			for ( int i = 0; i < static_cast<int>( voices.size() ); ++i ) {
 				if ( voices[ i ].triggered )
-					mTrigger[ i ] = k_flash_frames;
+					mTrigger[ i ] = FLASH_FRAMES;
 			}
-			mVoices = std::move( voices );
+			mVoices = voices;
 		}
 
 		void setColours( const ::std::vector<::juce::Colour> &colors ) {
@@ -33,16 +35,16 @@ namespace plop::ui {
 		}
 
 		void paint( ::juce::Graphics &g ) override {
-			g.fillAll( ::juce::Colour( 0xff1a1a2e ) );
+			g.fillAll( colours::orbitalBg );
 			if ( mVoices.empty() )
 				return;
 
 			const float cx   = getWidth() * 0.5f;
 			const float cy   = getHeight() * 0.5f;
 			const float maxR = std::min( cx, cy ) * 0.9f;
-			const float minR = maxR * k_min_radius_ratio;
+			const float minR = maxR * MIN_RADIUS_RATIO;
 
-			g.setColour( ::juce::Colour( 0xff2a2a44 ) );
+			g.setColour( colours::inputBg );
 
 			// Draw dots
 			for ( int i = 0; i < static_cast<int>( mVoices.size() ); ++i ) {
@@ -51,9 +53,9 @@ namespace plop::ui {
 				const float angle  = voice.phase * ::juce::MathConstants<float>::twoPi;
 				const float dotX   = cx + r * std::sin( angle );
 				const float dotY   = cy - r * std::cos( angle );
-				const float t      = static_cast<float>( mTrigger[ i ] ) / k_flash_frames;
-				const float dotR   = k_dot_r_normal + ( k_dot_r_peak - k_dot_r_normal ) * t;
-				const auto  colour = i < static_cast<int>( mColours.size() ) ? mColours[ i ] : ::juce::Colour( 0xffaaaacc );
+				const float t      = static_cast<float>( mTrigger[ i ] ) / FLASH_FRAMES;
+				const float dotR   = DOT_R_NORMAL + ( DOT_R_PEAK - DOT_R_NORMAL ) * t;
+				const auto  colour = i < static_cast<int>( mColours.size() ) ? mColours[ i ] : colours::orbitalDotFallback;
 
 				g.setColour( colour );
 				g.fillEllipse( dotX - dotR, dotY - dotR, dotR * 2.0f, dotR * 2.0f );
@@ -64,10 +66,10 @@ namespace plop::ui {
 		}
 
 	 private:
-		static constexpr int   k_flash_frames     = 10;
-		static constexpr float k_dot_r_normal     = 5.0f;
-		static constexpr float k_dot_r_peak       = 14.0f;
-		static constexpr float k_min_radius_ratio = 0.15f; // innermost ring as fraction of maxR
+		static constexpr int   FLASH_FRAMES      = 10;
+		static constexpr float DOT_R_NORMAL      = 5.0f;
+		static constexpr float DOT_R_PEAK        = 14.0f;
+		static constexpr float MIN_RADIUS_RATIO  = 0.15f; // innermost ring as fraction of maxR
 
 		::std::vector<VoiceState>     mVoices;
 		::std::vector<::juce::Colour> mColours;

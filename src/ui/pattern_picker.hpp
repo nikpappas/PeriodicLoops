@@ -7,6 +7,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include "music/midi.hpp"
+#include "ui/colours.hpp"
 
 namespace plop::ui {
 
@@ -18,15 +19,15 @@ namespace plop::ui {
 
 	inline std::vector<PatternDef> makeBuiltinPatterns() {
 		return {
-			{ "Pulse", ::juce::Colour( 0xff4fc3f7 ), { { 60, 1.0f, 0.0f, 0.5f, 0 } } },
-			{ "8ths", ::juce::Colour( 0xff66bb6a ), { { 60, 0.5f, 0.0f, 0.25f, 0 } } },
-			{ "Off+On", ::juce::Colour( 0xffffa726 ), { { 60, 1.0f, 0.0f, 0.25f, 0 }, { 64, 1.0f, 0.5f, 0.25f, 0 } } },
-			{ "3:4", ::juce::Colour( 0xffab47bc ), { { 60, 4.0f / 3.0f, 0.0f, 0.15f, 0 }, { 64, 1.0f, 0.0f, 0.15f, 0 } } },
+			{ "Pulse", colours::paletteBlue, { { 60, 1.0f, 0.0f, 0.5f, 0 } } },
+			{ "8ths", colours::paletteGreen, { { 60, 0.5f, 0.0f, 0.25f, 0 } } },
+			{ "Off+On", colours::paletteOrange, { { 60, 1.0f, 0.0f, 0.25f, 0 }, { 64, 1.0f, 0.5f, 0.25f, 0 } } },
+			{ "3:4", colours::palettePurple, { { 60, 4.0f / 3.0f, 0.0f, 0.15f, 0 }, { 64, 1.0f, 0.0f, 0.15f, 0 } } },
 			{ "Waltz",
-			  ::juce::Colour( 0xffef5350 ),
+			  colours::paletteRed,
 			  { { 60, 3.0f, 0.0f, 0.4f, 0 }, { 64, 3.0f, 1.0f, 0.3f, 0 }, { 67, 3.0f, 2.0f, 0.3f, 0 } } },
 			{ "Kick+Hi",
-			  ::juce::Colour( 0xff8d6e63 ),
+			  colours::paletteBrown,
 			  { { 36, 2.0f, 0.0f, 0.1f, 0 }, { 38, 2.0f, 1.0f, 0.1f, 0 }, { 42, 0.5f, 0.0f, 0.05f, 0 } } },
 		};
 	}
@@ -46,13 +47,13 @@ namespace plop::ui {
 			const int h = getHeight();
 
 			// Background
-			g.fillAll( ::juce::Colour( 0xff0f0f1c ) );
+			g.fillAll( colours::patternPickerBg );
 
 			// Add/replace toggle button
 			const auto toggleR = toggleRect();
-			g.setColour( mAddMode ? ::juce::Colour( 0xff223322 ) : ::juce::Colour( 0xff221a1a ) );
+			g.setColour( mAddMode ? colours::addBg : colours::replaceModeBg );
 			g.fillRoundedRectangle( toggleR.toFloat(), 3.0f );
-			g.setColour( mAddMode ? ::juce::Colour( 0xff66cc66 ) : ::juce::Colour( 0xffcc6666 ) );
+			g.setColour( mAddMode ? colours::addAccent : colours::replaceModeAccent );
 			g.drawRoundedRectangle( toggleR.toFloat(), 3.0f, 1.0f );
 			g.setColour( ::juce::Colours::white );
 			g.setFont( 11.0f );
@@ -60,14 +61,14 @@ namespace plop::ui {
 
 			// Swatches
 			const int count    = static_cast<int>( mPatterns.size() );
-			const int swatchX0 = toggleRect().getRight() + k_gap;
-			const int swatchW  = count > 0 ? ( w - swatchX0 ) / count - k_gap : 0;
+			const int swatchX0 = toggleRect().getRight() + GAP;
+			const int swatchW  = count > 0 ? ( w - swatchX0 ) / count - GAP : 0;
 			if ( swatchW < 10 )
 				return;
 
 			for ( int i = 0; i < count; ++i ) {
 				const auto &p = mPatterns[ i ];
-				const int   x = swatchX0 + i * ( swatchW + k_gap );
+				const int   x = swatchX0 + i * ( swatchW + GAP );
 				const auto  r = ::juce::Rectangle<int>{ x, 0, swatchW, h };
 
 				// Background fill
@@ -83,7 +84,7 @@ namespace plop::ui {
 				const float     previewY = 3.0f;
 				const float     previewX = static_cast<float>( x + 3 );
 				const float     previewW = static_cast<float>( swatchW - 6 );
-				constexpr float k_win    = 4.0f; // preview shows 4 beats
+				constexpr float WIN      = 4.0f; // preview shows 4 beats
 
 				// Find min/max pitch for y-mapping
 				int minP = 127, maxP = 0;
@@ -97,8 +98,8 @@ namespace plop::ui {
 					if ( n.period <= 0.0f )
 						continue;
 					g.setColour( p.colour.withAlpha( 0.85f ) );
-					for ( float beat = n.offset; beat < k_win; beat += n.period ) {
-						const float nx = previewX + previewW * beat / k_win;
+					for ( float beat = n.offset; beat < WIN; beat += n.period ) {
+						const float nx = previewX + previewW * beat / WIN;
 						const float ny = previewY + previewH * ( 1.0f - static_cast<float>( n.pitch - minP ) / pitchRange );
 						g.fillRect( ::juce::Rectangle<float>{ nx - 1.0f, ny, 2.0f, previewH * 0.5f + 1.0f } );
 					}
@@ -132,8 +133,8 @@ namespace plop::ui {
 		}
 
 	 private:
-		static constexpr int k_toggle_w = 52;
-		static constexpr int k_gap      = 3;
+		static constexpr int TOGGLE_W = 52;
+		static constexpr int GAP      = 3;
 
 		const OnPickPattern     mOnPickPattern;
 		std::vector<PatternDef> mPatterns;
@@ -141,17 +142,17 @@ namespace plop::ui {
 		int                     mHoveredIndex = -1;
 
 		::juce::Rectangle<int> toggleRect() const {
-			return { 0, 0, k_toggle_w, getHeight() };
+			return { 0, 0, TOGGLE_W, getHeight() };
 		}
 
 		int swatchIndexAt( ::juce::Point<int> pos ) const {
 			const int count    = static_cast<int>( mPatterns.size() );
-			const int swatchX0 = toggleRect().getRight() + k_gap;
-			const int swatchW  = count > 0 ? ( getWidth() - swatchX0 ) / count - k_gap : 0;
+			const int swatchX0 = toggleRect().getRight() + GAP;
+			const int swatchW  = count > 0 ? ( getWidth() - swatchX0 ) / count - GAP : 0;
 			if ( swatchW < 10 )
 				return -1;
 			for ( int i = 0; i < count; ++i ) {
-				const int x = swatchX0 + i * ( swatchW + k_gap );
+				const int x = swatchX0 + i * ( swatchW + GAP );
 				if ( ::juce::Rectangle<int>{ x, 0, swatchW, getHeight() }.contains( pos ) )
 					return i;
 			}

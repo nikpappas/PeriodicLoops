@@ -9,15 +9,15 @@
 
 namespace plop::utils {
 
-	inline ::juce::File get_app_data_folder() {
+	inline ::juce::File getAppDataFolder() {
 
-		return ( PL_OS_PLATFORM == os_platform::PL_OS_WINDOWS
+		return ( PL_OS_PLATFORM == OsPlatform::PL_OS_WINDOWS
 		           ? ::juce::File::getSpecialLocation( ::juce::File::userApplicationDataDirectory )
 		           : ::juce::File::getSpecialLocation( ::juce::File::userApplicationDataDirectory ).getChildFile( SETTINGS_MACOS_FOLDER ) );
 	}
 
-	inline ::juce::File create_child_dir( const ::juce::File &parent, ::juce::StringRef dir_name ) {
-		auto child = parent.getChildFile( dir_name );
+	inline ::juce::File createChildDir( const ::juce::File &parent, const ::juce::StringRef &dirName ) {
+		auto child = parent.getChildFile( dirName );
 		if ( !child.isDirectory() ) {
 			child.createDirectory();
 		}
@@ -30,20 +30,20 @@ namespace plop::utils {
 	/// Since string_view knows its own length we can pass that length to the Juce String constructor
 	/// so it won't ever have to either scan the data multiple times or allocate multiple times
 	/// (and it's possible to include a null in the data)
-	inline ::juce::String to_juce_string( const std::string_view &prm_string_view ) {
-		return { prm_string_view.data(), prm_string_view.length() };
+	inline ::juce::String toJuceString( const std::string_view &sv ) {
+		return { sv.data(), sv.length() };
 	}
 
-	inline ::juce::File create_pl_data_folder() {
-		return create_child_dir( get_app_data_folder(), NLOOPS_FOLDER );
+	inline ::juce::File createPlDataFolder() {
+		return createChildDir( getAppDataFolder(), NLOOPS_FOLDER );
 	}
 
-	inline ::juce::File get_pl_data_folder( bool create_if_not_present ) {
-		if ( create_if_not_present ) {
-			return create_pl_data_folder();
+	inline ::juce::File getPlDataFolder( bool createIfNotPresent ) {
+		if ( createIfNotPresent ) {
+			return createPlDataFolder();
 		}
 
-		return get_app_data_folder().getChildFile( NLOOPS_FOLDER );
+		return getAppDataFolder().getChildFile( NLOOPS_FOLDER );
 	}
 
 	constexpr float samplesToSeconds( const int &sampleRate, const int &samples ) {

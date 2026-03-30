@@ -11,22 +11,22 @@ namespace plop {
 	/// are compile-time disabled in release builds, so the compiler can optimise out the
 	/// whole call.
 	template <typename T>
-	inline void pl_debug( T &&prm_message ) {
-		std::cout << prm_message << std::endl;
+	inline void pl_debug( T &&msg ) {
+		std::cout << msg << std::endl;
 	}
 
 	/// \brief Pass-through wrapper to a logger.
 	///
 	template <typename T>
-	inline void pl_info( T &&prm_message ) {
-		std::cout << prm_message << std::endl;
+	inline void pl_info( T &&msg ) {
+		std::cout << msg << std::endl;
 	}
 
 	/// \brief Pass-through wrapper to a logger.
 	///
 	template <typename T>
-	inline void pl_error( T &&prm_message ) {
-		std::cout << prm_message << std::endl;
+	inline void pl_error( T &&msg ) {
+		std::cout << msg << std::endl;
 	}
 
 }

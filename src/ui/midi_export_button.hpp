@@ -8,6 +8,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include "music/midi.hpp"
+#include "ui/colours.hpp"
 
 namespace plop::ui {
 
@@ -78,9 +79,9 @@ namespace plop::ui {
 
 		void paint( ::juce::Graphics &g ) override {
 			const auto b = getLocalBounds().toFloat();
-			g.setColour( mHovered ? ::juce::Colour( 0xff2255aa ) : ::juce::Colour( 0xff1a3a6a ) );
+			g.setColour( mHovered ? colours::midiExportBtnHover : colours::midiExportBtnNormal );
 			g.fillRoundedRectangle( b, 4.0f );
-			g.setColour( ::juce::Colour( 0xff88bbff ) );
+			g.setColour( colours::midiExportBtnBorder );
 			g.drawRoundedRectangle( b.reduced( 0.5f ), 4.0f, 1.0f );
 			g.setColour( ::juce::Colours::white );
 			g.setFont( 12.0f );

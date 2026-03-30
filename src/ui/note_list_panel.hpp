@@ -10,6 +10,7 @@
 #include "music/midi.hpp"
 #include "music/scales.hpp"
 #include "processor/engine.hpp"
+#include "ui/colours.hpp"
 
 namespace plop::ui {
 
@@ -52,13 +53,13 @@ namespace plop::ui {
 			};
 		}
 
-		void setNotes( ::std::vector<PeriodicNote> notes ) {
-			mRows.setNotes( std::move( notes ) );
+		void setNotes( const ::std::vector<PeriodicNote> &notes ) {
+			mRows.setNotes( notes );
 			syncRowsSize();
 		}
 
-		void setColours( ::std::vector<::juce::Colour> colours ) {
-			mRows.setColours( std::move( colours ) );
+		void setColours( const ::std::vector<::juce::Colour> &colours ) {
+			mRows.setColours( colours );
 		}
 
 		void setShowChannel( bool show ) {
@@ -76,36 +77,36 @@ namespace plop::ui {
 		}
 
 		void paint( ::juce::Graphics &g ) override {
-			g.fillAll( ::juce::Colour( 0xff12121f ) );
+			g.fillAll( colours::panelBg );
 
-			g.setColour( ::juce::Colour( 0xff555577 ) );
-			g.fillRect( 0, 0, getWidth(), kHeaderH );
+			g.setColour( colours::noteHeaderBg );
+			g.fillRect( 0, 0, getWidth(), HEADER_H );
 			g.setColour( ::juce::Colours::white );
 			g.setFont( ::juce::Font( 13.0f, ::juce::Font::bold ) );
-			g.drawText( "Notes", kPadding, 0, getWidth() - kPadding, kHeaderH, ::juce::Justification::centredLeft );
+			g.drawText( "Notes", PADDING, 0, getWidth() - PADDING, HEADER_H, ::juce::Justification::centredLeft );
 
-			g.setColour( ::juce::Colour( 0xff888899 ) );
+			g.setColour( colours::offWhite );
 			g.setFont( 11.0f );
-			const int y_cols = kHeaderH + 4;
-			g.drawText( mMode == PluginMode::Drums ? "Drum" : "Pitch", kPadding + 22, y_cols, 65, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Period", kPadding + 111, y_cols, 46, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Offset", kPadding + 161, y_cols, mRows.showChannel() ? 40 : 64, 20, ::juce::Justification::centredLeft );
+			const int y_cols = HEADER_H + 4;
+			g.drawText( mMode == PluginMode::Drums ? "Drum" : "Pitch", PADDING + 22, y_cols, 65, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Period", PADDING + 111, y_cols, 46, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Offset", PADDING + 161, y_cols, mRows.showChannel() ? 40 : 64, 20, ::juce::Justification::centredLeft );
 			if ( mRows.showChannel() )
-				g.drawText( "Ch", kPadding + 205, y_cols, 22, 20, ::juce::Justification::centredLeft );
+				g.drawText( "Ch", PADDING + 205, y_cols, 22, 20, ::juce::Justification::centredLeft );
 
-			g.setColour( ::juce::Colour( 0xff333344 ) );
-			g.drawHorizontalLine( kTotalHeaderH - 2, 0.0f, static_cast<float>( getWidth() ) );
+			g.setColour( colours::borderLine );
+			g.drawHorizontalLine( TOTAL_HEADER_H - 2, 0.0f, static_cast<float>( getWidth() ) );
 		}
 
 		void resized() override {
-			mViewport.setBounds( 0, kTotalHeaderH, getWidth(), getHeight() - kTotalHeaderH );
+			mViewport.setBounds( 0, TOTAL_HEADER_H, getWidth(), getHeight() - TOTAL_HEADER_H );
 			syncRowsSize();
 		}
 
 	 private:
-		static constexpr int kPadding      = 8;
-		static constexpr int kHeaderH      = 30;
-		static constexpr int kTotalHeaderH = kHeaderH + 4 + 22; // 56
+		static constexpr int PADDING       = 8;
+		static constexpr int HEADER_H      = 30;
+		static constexpr int TOTAL_HEADER_H = HEADER_H + 4 + 22; // 56
 
 		const Callbacks mCbs;
 		PluginMode      mMode = PluginMode::Melody;
@@ -125,20 +126,20 @@ namespace plop::ui {
 
 			RowsComponent() {
 				mEditor.setJustification( ::juce::Justification::centred );
-				mEditor.setColour( ::juce::TextEditor::backgroundColourId, ::juce::Colour( 0xff2a2a44 ) );
+				mEditor.setColour( ::juce::TextEditor::backgroundColourId, colours::inputBg );
 				mEditor.setColour( ::juce::TextEditor::textColourId, ::juce::Colours::white );
-				mEditor.setColour( ::juce::TextEditor::outlineColourId, ::juce::Colour( 0xff4fc3f7 ) );
+				mEditor.setColour( ::juce::TextEditor::outlineColourId, colours::accentBlue );
 				mEditor.onReturnKey = [ this ] { commitEdit(); };
 				mEditor.onEscapeKey = [ this ] { cancelEdit(); };
 				mEditor.onFocusLost = [ this ] { commitEdit(); };
 				addChildComponent( mEditor );
 			}
 
-			void setNotes( std::vector<PeriodicNote> notes ) {
-				mNotes = std::move( notes );
+			void setNotes( const std::vector<PeriodicNote> &notes ) {
+				mNotes = notes;
 			}
-			void setColours( std::vector<::juce::Colour> c ) {
-				mColours = std::move( c );
+			void setColours( const std::vector<::juce::Colour> &c ) {
+				mColours = c;
 			}
 
 			void setShowChannel( bool show ) {
@@ -161,22 +162,22 @@ namespace plop::ui {
 				mScaleType = scaleTypeIndex;
 			}
 			int getContentHeight() const {
-				return static_cast<int>( mNotes.size() ) * row_h + 6 + 22 + 8;
+				return static_cast<int>( mNotes.size() ) * ROW_H + 6 + 22 + 8;
 			}
 
 			void paint( ::juce::Graphics &g ) override {
-				g.fillAll( ::juce::Colour( 0xff12121f ) );
+				g.fillAll( colours::panelBg );
 				g.setFont( 13.0f );
 				for ( int i = 0; i < static_cast<int>( mNotes.size() ); ++i ) {
 					const auto &note = mNotes[ i ];
-					const int   y    = i * row_h;
+					const int   y    = i * ROW_H;
 					if ( i % 2 == 0 ) {
-						g.setColour( ::juce::Colour( 0xff1e1e30 ) );
-						g.fillRect( 0, y, getWidth(), row_h );
+						g.setColour( colours::rowAlt );
+						g.fillRect( 0, y, getWidth(), ROW_H );
 					}
 					const auto sb                 = swatchRect( i );
 					const auto colour             = colourFor( i );
-					const auto swatchCornerRadius = swatch_s / 2.0f;
+					const auto swatchCornerRadius = SWATCH_S / 2.0f;
 					g.setColour( colour );
 					g.fillRoundedRectangle( sb.toFloat(), swatchCornerRadius );
 					g.setColour( colour.brighter( 0.3f ) );
@@ -199,18 +200,18 @@ namespace plop::ui {
 						drawCell( g, ::juce::String( note.channel ), channelRect( i ), i == mEditingIndex && mEditingField == Field::Channel );
 
 					const auto rb = removeRect( i );
-					g.setColour( ::juce::Colour( 0xff553333 ) );
+					g.setColour( colours::removeBg );
 					g.fillRoundedRectangle( rb.toFloat(), 3.0f );
-					g.setColour( ::juce::Colour( 0xffff6666 ) );
+					g.setColour( colours::removeAccent );
 					g.setFont( 11.0f );
 					g.drawText( "x", rb, ::juce::Justification::centred );
 					g.setFont( 13.0f );
 				}
-				const int  addY = static_cast<int>( mNotes.size() ) * row_h + 6;
-				const auto addB = ::juce::Rectangle<int>{ kPadding, addY, getWidth() - 2 * kPadding, 22 };
-				g.setColour( ::juce::Colour( 0xff223322 ) );
+				const int  addY = static_cast<int>( mNotes.size() ) * ROW_H + 6;
+				const auto addB = ::juce::Rectangle<int>{ PADDING, addY, getWidth() - 2 * PADDING, 22 };
+				g.setColour( colours::addBg );
 				g.fillRoundedRectangle( addB.toFloat(), 4.0f );
-				g.setColour( ::juce::Colour( 0xff66cc66 ) );
+				g.setColour( colours::addAccent );
 				g.setFont( 13.0f );
 				g.drawText( "+ Add Note", addB, ::juce::Justification::centred );
 			}
@@ -246,8 +247,8 @@ namespace plop::ui {
 						return;
 					}
 				}
-				const int  addY = static_cast<int>( mNotes.size() ) * row_h + 6;
-				const auto addB = ::juce::Rectangle<int>{ kPadding, addY, getWidth() - 2 * kPadding, 22 };
+				const int  addY = static_cast<int>( mNotes.size() ) * ROW_H + 6;
+				const auto addB = ::juce::Rectangle<int>{ PADDING, addY, getWidth() - 2 * PADDING, 22 };
 				if ( onAddNote && addB.contains( pos ) )
 					onAddNote();
 			}
@@ -264,7 +265,7 @@ namespace plop::ui {
 						const int newIdx = ::juce::jlimit( 0, static_cast<int>( music::kGmDrums.size() ) - 1, startIdx + dy / 4 );
 						updated.pitch = music::gmDrumNoteAtIndex( newIdx );
 					} else if ( mMode == PluginMode::Scale ) {
-						const auto &pc    = music::k_scales[ static_cast<size_t>( mScaleType ) ].pitchClasses;
+						const auto &pc    = music::SCALES[ static_cast<size_t>( mScaleType ) ].pitchClasses;
 						const int   steps = dy / 4;
 						int         p     = mDragStartNote.pitch;
 						for ( int s = 0; s < std::abs( steps ); ++s )
@@ -317,9 +318,9 @@ namespace plop::ui {
 
 		 private:
 			enum class Field { None, Pitch, Period, Offset, Channel };
-			static constexpr int kPadding = 8;
-			static constexpr int swatch_s = 14;
-			static constexpr int row_h    = 28;
+			static constexpr int PADDING  = 8;
+			static constexpr int SWATCH_S = 14;
+			static constexpr int ROW_H    = 28;
 
 			std::vector<PeriodicNote>   mNotes;
 			std::vector<::juce::Colour> mColours;
@@ -337,22 +338,22 @@ namespace plop::ui {
 			PeriodicNote mDragStartNote = {};
 
 			::juce::Rectangle<int> swatchRect( int i ) const {
-				return { kPadding, i * row_h + ( row_h - swatch_s ) / 2, swatch_s, swatch_s };
+				return { PADDING, i * ROW_H + ( ROW_H - SWATCH_S ) / 2, SWATCH_S, SWATCH_S };
 			}
 			::juce::Rectangle<int> pitchRect( int i ) const {
-				return { kPadding + 22, i * row_h, 85, row_h };
+				return { PADDING + 22, i * ROW_H, 85, ROW_H };
 			}
 			::juce::Rectangle<int> periodRect( int i ) const {
-				return { kPadding + 111, i * row_h, 46, row_h };
+				return { PADDING + 111, i * ROW_H, 46, ROW_H };
 			}
 			::juce::Rectangle<int> offsetRect( int i ) const {
-				return { kPadding + 161, i * row_h, mShowChannel ? 40 : 64, row_h };
+				return { PADDING + 161, i * ROW_H, mShowChannel ? 40 : 64, ROW_H };
 			}
 			::juce::Rectangle<int> channelRect( int i ) const {
-				return { kPadding + 205, i * row_h, 22, row_h };
+				return { PADDING + 205, i * ROW_H, 22, ROW_H };
 			}
 			::juce::Rectangle<int> removeRect( int i ) const {
-				return { getWidth() - kPadding - 16, i * row_h + ( row_h - 16 ) / 2, 16, 16 };
+				return { getWidth() - PADDING - 16, i * ROW_H + ( ROW_H - 16 ) / 2, 16, 16 };
 			}
 
 			::juce::Colour colourFor( int i ) const {
@@ -376,7 +377,7 @@ namespace plop::ui {
 			               bool                   isActive,
 			               bool                   dimmed = false ) const {
 				if ( isActive ) {
-					g.setColour( ::juce::Colour( 0xff2a2a44 ) );
+					g.setColour( colours::inputBg );
 					g.fillRect( bounds );
 				}
 				g.setColour( dimmed ? ::juce::Colours::white.withAlpha( 0.35f ) : ::juce::Colours::white );
@@ -419,7 +420,7 @@ namespace plop::ui {
 				if ( mEditingField == Field::Pitch ) {
 					int pitch = ::juce::jlimit( 0, 127, mEditor.getText().getIntValue() );
 					if ( mMode == PluginMode::Scale )
-						pitch = music::snapToScale( pitch, mScaleRoot, music::k_scales[ static_cast<size_t>( mScaleType ) ].pitchClasses );
+						pitch = music::snapToScale( pitch, mScaleRoot, music::SCALES[ static_cast<size_t>( mScaleType ) ].pitchClasses );
 					updated.pitch = pitch;
 				} else if ( mEditingField == Field::Period )
 					updated.period = ::juce::jmax( 0.01f, mEditor.getText().getFloatValue() );

@@ -19,7 +19,7 @@ namespace plop {
 		bool                        silicaMode   = false;
 		float                       silicaPeriod = 4.0f;
 		int                         scaleRoot    = 0; // 0 = C
-		int                         scaleType    = 1; // index into music::k_scales (1 = Major)
+		int                         scaleType    = 1; // index into music::SCALES (1 = Major)
 
 		::juce::XmlElement toXml() const;
 

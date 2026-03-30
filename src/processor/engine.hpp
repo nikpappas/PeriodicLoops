@@ -136,7 +136,7 @@ namespace plop::p_loops {
 		PluginMode mMode         = PluginMode::Melody;
 		float      mSilicaPeriod = 4.0f;
 		int        mScaleRoot    = 0; // 0 = C
-		int        mScaleType    = 1; // index into music::k_scales (1 = Major)
+		int        mScaleType    = 1; // index into music::SCALES (1 = Major)
 
 		void redistributeSilicaOffsets();
 

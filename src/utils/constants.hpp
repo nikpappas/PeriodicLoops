@@ -9,16 +9,16 @@ namespace plop::utils {
 	inline constexpr auto SETTINGS_MACOS_FOLDER = "Application Support";
 
 	/// The three major categories of OS platform
-	enum class os_platform : ::std::uint8_t { PL_OS_MACOS, PL_OS_WINDOWS, PL_OS_LINUX };
+	enum class OsPlatform : ::std::uint8_t { PL_OS_MACOS, PL_OS_WINDOWS, PL_OS_LINUX };
 
 	/// The OS platform of this build
-	inline constexpr os_platform PL_OS_PLATFORM =
+	inline constexpr OsPlatform PL_OS_PLATFORM =
 #ifdef __APPLE__
-	  os_platform::PL_OS_MACOS
+	  OsPlatform::PL_OS_MACOS
 #elif _WIN32
-	  os_platform::PL_OS_WINDOWS
+	  OsPlatform::PL_OS_WINDOWS
 #else
-	  os_platform::PL_OS_LINUX
+	  OsPlatform::PL_OS_LINUX
 #endif
 	  ;
 

@@ -7,6 +7,7 @@
 #include <juce_gui_basics/juce_gui_basics.h>
 
 #include "music/midi.hpp"
+#include "ui/colours.hpp"
 
 namespace plop::ui {
 
@@ -130,7 +131,7 @@ namespace plop::ui {
 		}
 
 		int getCollapsedHeight() const {
-			return kHeaderH;
+			return HEADER_H;
 		}
 
 		void setCCs( std::vector<PeriodicCC> ccs ) {
@@ -139,14 +140,14 @@ namespace plop::ui {
 		}
 
 		void paint( ::juce::Graphics &g ) override {
-			g.fillAll( ::juce::Colour( 0xff12121f ) );
+			g.fillAll( colours::panelBg );
 
-			g.setColour( ::juce::Colour( 0xff445555 ) );
-			g.fillRect( 0, 0, getWidth(), kHeaderH );
+			g.setColour( colours::ccHeaderBg );
+			g.fillRect( 0, 0, getWidth(), HEADER_H );
 
 			// Collapse/expand triangle
-			const float  triX = static_cast<float>( kPadding );
-			const float  triY = static_cast<float>( kHeaderH ) / 2.0f;
+			const float  triX = static_cast<float>( PADDING );
+			const float  triY = static_cast<float>( HEADER_H ) / 2.0f;
 			::juce::Path tri;
 			if ( mCollapsed ) {
 				tri.addTriangle( triX, triY - 4.0f, triX, triY + 4.0f, triX + 6.0f, triY );
@@ -158,25 +159,25 @@ namespace plop::ui {
 
 			g.setColour( ::juce::Colours::white );
 			g.setFont( ::juce::Font( 13.0f, ::juce::Font::bold ) );
-			g.drawText( "CC Events", kPadding + 14, 0, getWidth() - kPadding - 14, kHeaderH, ::juce::Justification::centredLeft );
+			g.drawText( "CC Events", PADDING + 14, 0, getWidth() - PADDING - 14, HEADER_H, ::juce::Justification::centredLeft );
 
 			if ( mCollapsed )
 				return;
 
-			g.setColour( ::juce::Colour( 0xff888899 ) );
+			g.setColour( colours::offWhite );
 			g.setFont( 11.0f );
-			const int y_cols = kHeaderH + 4;
-			g.drawText( "CC", kPadding, y_cols, 55, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Period", kPadding + 111, y_cols, 50, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Offset", kPadding + 161, y_cols, 50, 20, ::juce::Justification::centredLeft );
-			g.drawText( "Ch", kPadding + 205, y_cols, 22, 20, ::juce::Justification::centredLeft );
+			const int y_cols = HEADER_H + 4;
+			g.drawText( "CC", PADDING, y_cols, 55, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Period", PADDING + 111, y_cols, 50, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Offset", PADDING + 161, y_cols, 50, 20, ::juce::Justification::centredLeft );
+			g.drawText( "Ch", PADDING + 205, y_cols, 22, 20, ::juce::Justification::centredLeft );
 
-			g.setColour( ::juce::Colour( 0xff333344 ) );
-			g.drawHorizontalLine( kTotalHeaderH - 2, 0.0f, static_cast<float>( getWidth() ) );
+			g.setColour( colours::borderLine );
+			g.drawHorizontalLine( TOTAL_HEADER_H - 2, 0.0f, static_cast<float>( getWidth() ) );
 		}
 
 		void mouseDown( const ::juce::MouseEvent &e ) override {
-			if ( e.getPosition().y < kHeaderH ) {
+			if ( e.getPosition().y < HEADER_H ) {
 				mCollapsed = !mCollapsed;
 				mViewport.setVisible( !mCollapsed );
 				if ( mOnToggle )
@@ -191,14 +192,14 @@ namespace plop::ui {
 				return;
 			}
 			mViewport.setVisible( true );
-			mViewport.setBounds( 0, kTotalHeaderH, getWidth(), getHeight() - kTotalHeaderH );
+			mViewport.setBounds( 0, TOTAL_HEADER_H, getWidth(), getHeight() - TOTAL_HEADER_H );
 			syncRowsSize();
 		}
 
 	 private:
-		static constexpr int kPadding      = 8;
-		static constexpr int kHeaderH      = 30;
-		static constexpr int kTotalHeaderH = kHeaderH + 4 + 22; // 56
+		static constexpr int PADDING        = 8;
+		static constexpr int HEADER_H       = 30;
+		static constexpr int TOTAL_HEADER_H = HEADER_H + 4 + 22; // 56
 
 		const Callbacks mCbs;
 		const OnToggle  mOnToggle;
@@ -218,32 +219,32 @@ namespace plop::ui {
 
 			RowsComponent() {
 				mEditor.setJustification( ::juce::Justification::centred );
-				mEditor.setColour( ::juce::TextEditor::backgroundColourId, ::juce::Colour( 0xff2a2a44 ) );
+				mEditor.setColour( ::juce::TextEditor::backgroundColourId, colours::inputBg );
 				mEditor.setColour( ::juce::TextEditor::textColourId, ::juce::Colours::white );
-				mEditor.setColour( ::juce::TextEditor::outlineColourId, ::juce::Colour( 0xff4fc3f7 ) );
+				mEditor.setColour( ::juce::TextEditor::outlineColourId, colours::accentBlue );
 				mEditor.onReturnKey = [ this ] { commitEdit(); };
 				mEditor.onEscapeKey = [ this ] { cancelEdit(); };
 				mEditor.onFocusLost = [ this ] { commitEdit(); };
 				addChildComponent( mEditor );
 			}
 
-			void setCCs( std::vector<PeriodicCC> ccs ) {
-				mCcs = std::move( ccs );
+			void setCCs( const std::vector<PeriodicCC> &ccs ) {
+				mCcs = ccs;
 			}
 
 			int getContentHeight() const {
-				return static_cast<int>( mCcs.size() ) * row_h + 6 + 22 + 8;
+				return static_cast<int>( mCcs.size() ) * ROW_H + 6 + 22 + 8;
 			}
 
 			void paint( ::juce::Graphics &g ) override {
-				g.fillAll( ::juce::Colour( 0xff12121f ) );
+				g.fillAll( colours::panelBg );
 				g.setFont( 13.0f );
 				for ( int i = 0; i < static_cast<int>( mCcs.size() ); ++i ) {
 					const auto &cc = mCcs[ i ];
-					const int   y  = i * row_h;
+					const int   y  = i * ROW_H;
 					if ( i % 2 == 0 ) {
-						g.setColour( ::juce::Colour( 0xff1e1e30 ) );
-						g.fillRect( 0, y, getWidth(), row_h );
+						g.setColour( colours::rowAlt );
+						g.fillRect( 0, y, getWidth(), ROW_H );
 					}
 					g.setColour( ::juce::Colours::white );
 					drawCell( g, midiCCToName( cc.number ), numberRect( i ), i == mEditingIndex && mEditingField == Field::Number );
@@ -262,18 +263,18 @@ namespace plop::ui {
 					g.setFont( 13.0f );
 
 					const auto rb = removeRect( i );
-					g.setColour( ::juce::Colour( 0xff553333 ) );
+					g.setColour( colours::removeBg );
 					g.fillRoundedRectangle( rb.toFloat(), 3.0f );
 					g.setColour( colours::offWhite );
 					g.setFont( 11.0f );
 					g.drawText( "x", rb, ::juce::Justification::centred );
 					g.setFont( 13.0f );
 				}
-				const int  addY = static_cast<int>( mCcs.size() ) * row_h + 6;
-				const auto addB = ::juce::Rectangle<int>{ kPadding, addY, getWidth() - 2 * kPadding, 22 };
-				g.setColour( ::juce::Colour( 0xff223322 ) );
+				const int  addY = static_cast<int>( mCcs.size() ) * ROW_H + 6;
+				const auto addB = ::juce::Rectangle<int>{ PADDING, addY, getWidth() - 2 * PADDING, 22 };
+				g.setColour( colours::addBg );
 				g.fillRoundedRectangle( addB.toFloat(), 4.0f );
-				g.setColour( ::juce::Colour( 0xff66cc66 ) );
+				g.setColour( colours::addAccent );
 				g.setFont( 13.0f );
 				g.drawText( "+ Add CC", addB, ::juce::Justification::centred );
 			}
@@ -320,8 +321,8 @@ namespace plop::ui {
 						return;
 					}
 				}
-				const int  addY = static_cast<int>( mCcs.size() ) * row_h + 6;
-				const auto addB = ::juce::Rectangle<int>{ kPadding, addY, getWidth() - 2 * kPadding, 22 };
+				const int  addY = static_cast<int>( mCcs.size() ) * ROW_H + 6;
+				const auto addB = ::juce::Rectangle<int>{ PADDING, addY, getWidth() - 2 * PADDING, 22 };
 				if ( onAddCc && addB.contains( pos ) )
 					onAddCc();
 			}
@@ -376,8 +377,8 @@ namespace plop::ui {
 
 		 private:
 			enum class Field { None, Number, Period, Offset, Channel };
-			static constexpr int kPadding = 8;
-			static constexpr int row_h    = 28;
+			static constexpr int PADDING  = 8;
+			static constexpr int ROW_H    = 28;
 
 			std::vector<PeriodicCC> mCcs;
 			::juce::TextEditor      mEditor;
@@ -391,28 +392,28 @@ namespace plop::ui {
 			PeriodicCC mDragStartCc = {};
 
 			::juce::Rectangle<int> numberRect( int i ) const {
-				return { kPadding, i * row_h, 55, row_h };
+				return { PADDING, i * ROW_H, 55, ROW_H };
 			}
 			::juce::Rectangle<int> periodRect( int i ) const {
-				return { kPadding + 111, i * row_h, 50, row_h };
+				return { PADDING + 111, i * ROW_H, 50, ROW_H };
 			}
 			::juce::Rectangle<int> offsetRect( int i ) const {
-				return { kPadding + 164, i * row_h, 50, row_h };
+				return { PADDING + 164, i * ROW_H, 50, ROW_H };
 			}
 
 			::juce::Rectangle<int> channelRect( int i ) const {
-				return { kPadding + 224, i * row_h, 22, row_h };
+				return { PADDING + 224, i * ROW_H, 22, ROW_H };
 			}
 			::juce::Rectangle<int> removeRect( int i ) const {
-				return { getWidth() - kPadding - 16, i * row_h + ( row_h - 16 ) / 2, 16, 16 };
+				return { getWidth() - PADDING - 16, i * ROW_H + ( ROW_H - 16 ) / 2, 16, 16 };
 			}
 			::juce::Rectangle<int> soloRect( int i ) const {
-				return { getWidth() - kPadding - 46, i * row_h + ( row_h - 16 ) / 2, 16, 16 };
+				return { getWidth() - PADDING - 46, i * ROW_H + ( ROW_H - 16 ) / 2, 16, 16 };
 			}
 
 			void drawCell( ::juce::Graphics &g, const ::juce::String &text, ::juce::Rectangle<int> bounds, bool isActive ) const {
 				if ( isActive ) {
-					g.setColour( ::juce::Colour( 0xff2a2a44 ) );
+					g.setColour( colours::inputBg );
 					g.fillRect( bounds );
 				}
 				g.setColour( ::juce::Colours::white );

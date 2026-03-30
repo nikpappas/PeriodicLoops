@@ -83,30 +83,30 @@ namespace plop::ui {
 		}
 
 		int getPreferredHeight() const {
-			int h = kPadding + kRowH; // mode buttons row 1
-			h += kPadding + kRowH;    // mode buttons row 2
+			int h = PADDING + ROW_H; // mode buttons row 1
+			h += PADDING + ROW_H;    // mode buttons row 2
 			if ( mMode == PluginMode::Silica )
-				h += kPadding + kRowH; // period
+				h += PADDING + ROW_H; // period
 			if ( mMode == PluginMode::Scale )
-				h += kPadding + kRowH + kPadding + kRowH; // root + scale type
+				h += PADDING + ROW_H + PADDING + ROW_H; // root + scale type
 			if ( mShowPlayPause )
-				h += kPadding + kRowH; // play/pause
-			h += kPadding;
+				h += PADDING + ROW_H; // play/pause
+			h += PADDING;
 			return h;
 		}
 
 		void paint( ::juce::Graphics &g ) override {
-			g.fillAll( ::juce::Colour( 0xff181828 ) );
+			g.fillAll( colours::settingsBg );
 
 			// Silica period row
 			if ( mMode == PluginMode::Silica ) {
 				auto       r      = silicaPeriodRect();
 				const bool active = mDragField == DragField::SilicaPeriod;
 				if ( active ) {
-					g.setColour( ::juce::Colour( 0xff2a2a44 ) );
+					g.setColour( colours::inputBg );
 					g.fillRoundedRectangle( r.toFloat(), 3.0f );
 				}
-				g.setColour( ::juce::Colour( 0xff888899 ) );
+				g.setColour( colours::offWhite );
 				g.setFont( 11.0f );
 				g.drawText( "Period", r.removeFromLeft( 48 ), ::juce::Justification::centredLeft );
 				g.setColour( ::juce::Colours::white );
@@ -121,62 +121,62 @@ namespace plop::ui {
 					auto       r      = scaleRootRect();
 					const bool active = mDragField == DragField::ScaleRoot;
 					if ( active ) {
-						g.setColour( ::juce::Colour( 0xff2a2a44 ) );
+						g.setColour( colours::inputBg );
 						g.fillRoundedRectangle( r.toFloat(), 3.0f );
 					}
-					g.setColour( ::juce::Colour( 0xff888899 ) );
+					g.setColour( colours::offWhite );
 					g.setFont( 11.0f );
 					g.drawText( "Root", r.removeFromLeft( 48 ), ::juce::Justification::centredLeft );
 					g.setColour( ::juce::Colours::white );
 					g.setFont( 13.0f );
-					g.drawText( music::k_noteNames[ mScaleRoot ], r, ::juce::Justification::centredLeft );
+					g.drawText( music::NOTE_NAMES[ mScaleRoot ], r, ::juce::Justification::centredLeft );
 				}
 				// Scale type row
 				{
 					auto       r      = scaleTypeRect();
 					const bool active = mDragField == DragField::ScaleType;
 					if ( active ) {
-						g.setColour( ::juce::Colour( 0xff2a2a44 ) );
+						g.setColour( colours::inputBg );
 						g.fillRoundedRectangle( r.toFloat(), 3.0f );
 					}
-					g.setColour( ::juce::Colour( 0xff888899 ) );
+					g.setColour( colours::offWhite );
 					g.setFont( 11.0f );
 					g.drawText( "Scale", r.removeFromLeft( 48 ), ::juce::Justification::centredLeft );
 					g.setColour( ::juce::Colours::white );
 					g.setFont( 13.0f );
-					g.drawText( music::k_scales[ static_cast<size_t>( mScaleType ) ].name, r, ::juce::Justification::centredLeft );
+					g.drawText( music::SCALES[ static_cast<size_t>( mScaleType ) ].name, r, ::juce::Justification::centredLeft );
 				}
 			}
 
 			// Bottom border
-			g.setColour( ::juce::Colour( 0xff333344 ) );
+			g.setColour( colours::borderLine );
 			g.drawHorizontalLine( getHeight() - 1, 0.0f, static_cast<float>( getWidth() ) );
 		}
 
 		void resized() override {
 			auto bounds       = getLocalBounds();
 			auto numberOfBtns = 5;
-			bounds.removeFromTop( kPadding );
-			auto buttonBounds = bounds.removeFromTop( kRowH );
+			bounds.removeFromTop( PADDING );
+			auto buttonBounds = bounds.removeFromTop( ROW_H );
 
-			const int btnW = ( buttonBounds.getWidth() - 2 * kPadding - ( numberOfBtns - 1 ) * kBtnGap ) / numberOfBtns;
+			const int btnW = ( buttonBounds.getWidth() - 2 * PADDING - ( numberOfBtns - 1 ) * BTN_GAP ) / numberOfBtns;
 
-			buttonBounds.removeFromLeft( kPadding );
+			buttonBounds.removeFromLeft( PADDING );
 			// Row 1: PluginMode buttons
-			buttonBounds.removeFromLeft( kBtnGap / 2 );
+			buttonBounds.removeFromLeft( BTN_GAP / 2 );
 			mBtnPro.setBounds( buttonBounds.removeFromLeft( btnW ) );
-			buttonBounds.removeFromLeft( kBtnGap );
+			buttonBounds.removeFromLeft( BTN_GAP );
 			mBtnMelody.setBounds( buttonBounds.removeFromLeft( btnW ) );
-			buttonBounds.removeFromLeft( kBtnGap );
+			buttonBounds.removeFromLeft( BTN_GAP );
 			mBtnDrums.setBounds( buttonBounds.removeFromLeft( btnW ) );
-			buttonBounds.removeFromLeft( kBtnGap );
+			buttonBounds.removeFromLeft( BTN_GAP );
 			mBtnSilica.setBounds( buttonBounds.removeFromLeft( btnW ) );
-			buttonBounds.removeFromLeft( kBtnGap );
+			buttonBounds.removeFromLeft( BTN_GAP );
 			mBtnScale.setBounds( buttonBounds.removeFromLeft( btnW ) );
 
 			if ( mShowPlayPause ) {
-				const int ppY = getHeight() - kPadding - kRowH;
-				mBtnPlayPause.setBounds( kPadding, ppY, getWidth() - 2 * kPadding, kRowH );
+				const int ppY = getHeight() - PADDING - ROW_H;
+				mBtnPlayPause.setBounds( PADDING, ppY, getWidth() - 2 * PADDING, ROW_H );
 			}
 		}
 
@@ -215,7 +215,7 @@ namespace plop::ui {
 					repaint();
 				}
 			} else if ( mDragField == DragField::ScaleType ) {
-				const int count   = static_cast<int>( music::k_scales.size() );
+				const int count   = static_cast<int>( music::SCALES.size() );
 				const int newType = ::juce::jlimit( 0, count - 1, mDragStartInt + dy / 8 );
 				if ( newType != mScaleType ) {
 					mScaleType = newType;
@@ -238,9 +238,9 @@ namespace plop::ui {
 		}
 
 	 private:
-		static constexpr int kPadding = 6;
-		static constexpr int kRowH    = 26;
-		static constexpr int kBtnGap  = 6;
+		static constexpr int PADDING = 6;
+		static constexpr int ROW_H   = 26;
+		static constexpr int BTN_GAP = 6;
 
 		const Callbacks mCbs;
 		const bool      mShowPlayPause;
@@ -268,19 +268,19 @@ namespace plop::ui {
 		bool               mEditorActive = false;
 
 		int modeSettingsY() const {
-			return kPadding + kRowH + kPadding + kRowH + kPadding;
+			return PADDING + ROW_H + PADDING + ROW_H + PADDING;
 		}
 
 		::juce::Rectangle<int> silicaPeriodRect() const {
-			return { kPadding, modeSettingsY(), getWidth() - 2 * kPadding, kRowH };
+			return { PADDING, modeSettingsY(), getWidth() - 2 * PADDING, ROW_H };
 		}
 
 		::juce::Rectangle<int> scaleRootRect() const {
-			return { kPadding, modeSettingsY(), getWidth() - 2 * kPadding, kRowH };
+			return { PADDING, modeSettingsY(), getWidth() - 2 * PADDING, ROW_H };
 		}
 
 		::juce::Rectangle<int> scaleTypeRect() const {
-			return { kPadding, modeSettingsY() + kRowH + kPadding, getWidth() - 2 * kPadding, kRowH };
+			return { PADDING, modeSettingsY() + ROW_H + PADDING, getWidth() - 2 * PADDING, ROW_H };
 		}
 
 		void fireMode( PluginMode mode ) {
@@ -299,9 +299,9 @@ namespace plop::ui {
 			mEditorActive     = true;
 			const auto bounds = silicaPeriodRect().withTrimmedLeft( 48 ).reduced( 2 );
 			mEditor.setJustification( ::juce::Justification::centred );
-			mEditor.setColour( ::juce::TextEditor::backgroundColourId, ::juce::Colour( 0xff2a2a44 ) );
+			mEditor.setColour( ::juce::TextEditor::backgroundColourId, colours::inputBg );
 			mEditor.setColour( ::juce::TextEditor::textColourId, ::juce::Colours::white );
-			mEditor.setColour( ::juce::TextEditor::outlineColourId, ::juce::Colour( 0xff4fc3f7 ) );
+			mEditor.setColour( ::juce::TextEditor::outlineColourId, colours::accentBlue );
 			mEditor.setInputRestrictions( 8, "0123456789." );
 			mEditor.setBounds( bounds );
 			mEditor.setText( ::juce::String( mSilicaPeriod ), false );

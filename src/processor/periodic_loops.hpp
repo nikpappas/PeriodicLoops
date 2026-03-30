@@ -11,22 +11,22 @@
 
 namespace plop::p_loops {
 
-	class p_loops : public ::juce::AudioProcessor {
+	class PLoops : public ::juce::AudioProcessor {
 	 public:
-		p_loops();
+		PLoops();
 
-		~p_loops() noexcept override;
+		~PLoops() noexcept override;
 
-		static BusesProperties get_bus_layout() {
+		static BusesProperties getBusLayout() {
 			return BusesProperties()
 			  .withInput( "Input", juce::AudioChannelSet::stereo(), true )
 			  .withOutput( "Output", juce::AudioChannelSet::stereo(), true );
 		}
 
-		static BusesProperties get_midifx_bus_layout() {
-			const auto host_type = ::juce::PluginHostType();
-			if ( host_type.isAbletonLive() || host_type.isProTools() )
-				return get_bus_layout();
+		static BusesProperties getMidifxBusLayout() {
+			const auto hostType = ::juce::PluginHostType();
+			if ( hostType.isAbletonLive() || hostType.isProTools() )
+				return getBusLayout();
 			return BusesProperties();
 		}
 
@@ -46,7 +46,7 @@ namespace plop::p_loops {
 		::juce::AudioProcessorEditor *createEditor() override;
 
 		const ::juce::String getName() const override {
-			return utils::to_juce_string( ::plop::utils::PLUGIN_NAME );
+			return utils::toJuceString( ::plop::utils::PLUGIN_NAME );
 		}
 
 		bool acceptsMidi() const override {
@@ -80,7 +80,7 @@ namespace plop::p_loops {
 		void getStateInformation( ::juce::MemoryBlock &destData ) override;
 		void setStateInformation( const void *data, int sizeInBytes ) override;
 
-		static ::juce::File log_file();
+		static ::juce::File logFile();
 
 		// ---- Delegating accessors -----------------------------------------------
 
@@ -155,7 +155,7 @@ namespace plop::p_loops {
 	 private:
 		Engine mEngine;
 
-		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR( p_loops )
+		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR( PLoops )
 	};
 
 } // namespace plop::p_loops
