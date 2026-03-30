@@ -63,7 +63,7 @@ namespace plop::utils {
 	}
 
 	constexpr float samplesToBeats( const float &bpm, const float &sampleRate, const int &samples ) {
-		const auto seconds = samplesToSeconds( sampleRate, samples );
+		const auto seconds = samplesToSeconds( static_cast<int>( sampleRate ), samples );
 		return secondsToBeats( bpm, seconds );
 	}
 
