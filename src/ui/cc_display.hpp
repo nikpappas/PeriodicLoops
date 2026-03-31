@@ -129,7 +129,7 @@ namespace plop::ui {
 					else
 						wave.lineTo( static_cast<float>( px ), py );
 				}
-				g.setColour( colours::accentBlue.withAlpha( isDisabled ? 0.25f : 0.75f ) );
+				g.setColour( colours::accentOrange.withAlpha( isDisabled ? 0.25f : 0.75f ) );
 				g.strokePath( wave, ::juce::PathStrokeType( 1.5f ) );
 
 				// Cursor line

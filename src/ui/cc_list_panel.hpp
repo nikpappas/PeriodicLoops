@@ -265,7 +265,7 @@ namespace plop::ui {
 					drawCell( g, ::juce::String( cc.channel ), channelRect( i ), i == mEditingIndex && mEditingField == Field::Channel );
 
 					const auto sb = soloRect( i );
-					g.setColour( colours::accentBlue );
+					g.setColour( colours::accentOrange );
 					g.fillRoundedRectangle( sb.toFloat(), BTN_CORNER_RADIUS );
 					g.setColour( mCcs[ i ].solo ? ::juce::Colours::white : colours::offWhite );
 					g.setFont( FONT_SM );
@@ -274,7 +274,7 @@ namespace plop::ui {
 					const auto rb = removeRect( i );
 					g.setColour( colours::removeBg );
 					g.fillRoundedRectangle( rb.toFloat(), BTN_CORNER_RADIUS );
-					g.setColour( colours::offWhite );
+					g.setColour( colours::removeAccent );
 					g.setFont( FONT_SM );
 					g.drawText( "x", rb, ::juce::Justification::centred );
 				}

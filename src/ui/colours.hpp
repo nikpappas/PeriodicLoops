@@ -6,12 +6,13 @@
 namespace plop::colours {
 
 	// ---- Accent / interactive -----------------------------------------------
-	const auto accentBlue        = ::juce::Colour( 0xff4fc3f7 ); // cyan — waveform, editor outline
-	const auto btnAccentColour   = ::juce::Colour( 0xffab47bc ); // purple — toggle-on buttons
+	const auto accentBlue         = ::juce::Colour( 0xff4fc3f7 ); // cyan — waveform, editor outline
+	const auto accentOrange       = ::juce::Colour( 0xffE4884E ); // orange — waveform, editor outline
+	const auto btnAccentColour    = ::juce::Colour( 0xffab47bc ); // purple — toggle-on buttons
 	const auto btnAccentColourAlt = ::juce::Colour( 0xff66bb6a ); // green — play/pause toggle-on
-	const auto addAccent         = ::juce::Colour( 0xff66cc66 ); // green — add button text, add-mode border
-	const auto removeAccent      = ::juce::Colour( 0xffff6666 ); // red — remove button text
-	const auto replaceModeAccent = ::juce::Colour( 0xffcc6666 ); // red — replace-mode border in pattern picker
+	const auto addAccent          = ::juce::Colour( 0xff66cc66 ); // green — add button text, add-mode border
+	const auto removeAccent       = ::juce::Colour( 0xffff6666 ); // red — remove button text
+	const auto replaceModeAccent  = ::juce::Colour( 0xffcc6666 ); // red — replace-mode border in pattern picker
 
 	// ---- Backgrounds --------------------------------------------------------
 	const auto lcdBgColour     = ::juce::Colour( 0xff0b0b18 ); // darkest — CC display even lanes
