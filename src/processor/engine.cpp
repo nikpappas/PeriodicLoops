@@ -134,12 +134,12 @@ void Engine::process( MidiBuffer &midi, int numSamples, ::juce::AudioPlayHead *p
 					continue;
 				if ( anySolo && !cc.solo )
 					continue;
+				const float phase = ( static_cast<float>( timeNow + i ) / samplesPerBeat + cc.offset ) / cc.period;
 				midi.addEvent(
 				  MidiMessage::controllerEvent(
 					 cc.channel + 1,
 					 cc.number,
-					 static_cast<int>(
-						127.0f * ( 0.5f + 0.5f * sin( 2 * 3.14f * ( timeNow + i + cc.offset * samplesPerBeat ) / ( cc.period * samplesPerBeat ) ) ) ) ),
+					 static_cast<int>( 127.0f * evalWaveShape( cc.shape, phase ) ) ),
 				  timeNow + i );
 			}
 		}
@@ -167,7 +167,7 @@ void Engine::addNote( const PeriodicNote &note ) {
 			buf.notes[ buf.count++ ] = note;
 	} );
 	mUiNotes.push_back( note );
-	if ( mMode == PluginMode::silica )
+	if ( mMode == PluginMode::Silica )
 		redistributeSilicaOffsets();
 }
 
@@ -194,6 +194,15 @@ void Engine::updateNote( int index, const PeriodicNote &note ) {
 			buf.notes[ index ] = note;
 	} );
 	mUiNotes[ index ] = note;
+}
+
+void Engine::replaceAllNotes( const ::std::vector<PeriodicNote> &notes ) {
+	mUiNotes = notes;
+	swapNoteBuffer( [ &notes ]( NoteBuffer &buf ) {
+		buf.count = ::std::min( static_cast<int>( notes.size() ), MAX_NOTES );
+		for ( int i = 0; i < buf.count; ++i )
+			buf.notes[ i ] = notes[ i ];
+	} );
 }
 
 // ---- CC management ---------------------------------------------------------
@@ -238,7 +247,7 @@ void Engine::setSilicaPeriod( float period ) {
 }
 
 bool Engine::isSilicaMode() {
-	return mMode == PluginMode::silica;
+	return mMode == PluginMode::Silica;
 }
 
 void Engine::redistributeSilicaOffsets() {
@@ -272,6 +281,7 @@ PluginState Engine::captureState() const {
 	return PluginState{
 		.notes        = mUiNotes,
 		.ccs          = mUiCcs,
+		.groups       = mGroups,
 		.mode         = mMode,
 		.silicaPeriod = mSilicaPeriod,
 		.scaleRoot    = mScaleRoot,
@@ -289,6 +299,7 @@ void Engine::applyState( const PluginState &state ) {
 	mSilicaPeriod = state.silicaPeriod;
 	mScaleRoot    = state.scaleRoot;
 	mScaleType    = state.scaleType;
+	mGroups       = state.groups;
 
 	while ( !mUiCcs.empty() )
 		removeCc( 0 );

@@ -122,7 +122,7 @@ namespace plop::ui {
 				::juce::Path wave;
 				for ( int px = 0; px < w; ++px ) {
 					const float beat = beatStart + WINDOW * static_cast<float>( px ) / w;
-					const float val  = 0.5f + 0.5f * std::sin( 2.0f * 3.14159265f * ( beat + cc.offset ) / cc.period );
+					const float val  = evalWaveShape( cc.shape, ( beat + cc.offset ) / cc.period );
 					const float py   = y + margin + waveH * ( 1.0f - val );
 					if ( px == 0 )
 						wave.startNewSubPath( static_cast<float>( px ), py );
@@ -139,7 +139,7 @@ namespace plop::ui {
 
 				// Current-value dot on the waveform
 				if ( !isDisabled ) {
-					const float curVal = 0.5f + 0.5f * std::sin( 2.0f * 3.14159265f * ( mCurrentBeat + cc.offset ) / cc.period );
+					const float curVal = evalWaveShape( cc.shape, ( mCurrentBeat + cc.offset ) / cc.period );
 					const float dotY = y + margin + waveH * ( 1.0f - curVal );
 					g.setColour( ::juce::Colours::white );
 					g.fillEllipse( static_cast<float>( cursorX ) - 3.5f, dotY - 3.5f, 7.0f, 7.0f );

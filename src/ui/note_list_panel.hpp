@@ -85,7 +85,7 @@ namespace plop::ui {
 			g.setColour( colours::offWhite );
 			g.setFont( FONT_SM );
 			const int y_cols = HEADER_H + PAD_SM;
-			g.drawText( mMode == PluginMode::drums ? "Drum" : "Pitch", PAD_MD + 22, y_cols, 65, 20, ::juce::Justification::centredLeft );
+			g.drawText( mMode == PluginMode::Drums ? "Drum" : "Pitch", PAD_MD + 22, y_cols, 65, 20, ::juce::Justification::centredLeft );
 			g.drawText( "Period", PAD_MD + 111, y_cols, 46, 20, ::juce::Justification::centredLeft );
 			g.drawText( "Offset", PAD_MD + 161, y_cols, mRows.showChannel() ? 40 : 64, 20, ::juce::Justification::centredLeft );
 			if ( mRows.showChannel() )
@@ -118,7 +118,7 @@ namespace plop::ui {
 		static constexpr int ADD_BTN_H      = 36;
 
 		const Callbacks mCbs;
-		PluginMode      mMode = PluginMode::melody;
+		PluginMode      mMode = PluginMode::Melody;
 
 		::juce::Rectangle<int> addButtonRect() const {
 			return { PAD_MD, getHeight() - ADD_BTN_H + 7, getWidth() - 2 * PAD_MD, 22 };
@@ -195,7 +195,7 @@ namespace plop::ui {
 					g.setColour( colour.brighter( 0.3f ) );
 					g.drawRoundedRectangle( sb.toFloat(), swatchCornerRadius, 1.0f );
 
-					const bool silica = ( mMode == PluginMode::silica );
+					const bool silica = ( mMode == PluginMode::Silica );
 					g.setColour( ::juce::Colours::white );
 					drawCell( g, pitchLabel( note.pitch ), pitchRect( i ), i == mEditingIndex && mEditingField == Field::Pitch );
 					drawCell( g,
@@ -236,9 +236,9 @@ namespace plop::ui {
 					Field f = Field::None;
 					if ( pitchRect( i ).contains( pos ) )
 						f = Field::Pitch;
-					else if ( !( mMode == PluginMode::silica ) && periodRect( i ).contains( pos ) )
+					else if ( !( mMode == PluginMode::Silica ) && periodRect( i ).contains( pos ) )
 						f = Field::Period;
-					else if ( !( mMode == PluginMode::silica ) && offsetRect( i ).contains( pos ) )
+					else if ( !( mMode == PluginMode::Silica ) && offsetRect( i ).contains( pos ) )
 						f = Field::Offset;
 					else if ( mShowChannel && channelRect( i ).contains( pos ) )
 						f = Field::Channel;
@@ -261,11 +261,11 @@ namespace plop::ui {
 
 				PeriodicNote updated = mDragStartNote;
 				if ( mDragField == Field::Pitch ) {
-					if ( mMode == PluginMode::drums ) {
+					if ( mMode == PluginMode::Drums ) {
 						const int startIdx = music::gmDrumIndexForNote( mDragStartNote.pitch );
 						const int newIdx = ::juce::jlimit( 0, static_cast<int>( music::kGmDrums.size() ) - 1, startIdx + dy / 4 );
 						updated.pitch = music::gmDrumNoteAtIndex( newIdx );
-					} else if ( mMode == PluginMode::scale ) {
+					} else if ( mMode == PluginMode::Melody ) {
 						const auto &pc    = music::SCALES[ static_cast<size_t>( mScaleType ) ].pitchClasses;
 						const int   steps = dy / 4;
 						int         p     = mDragStartNote.pitch;
@@ -302,11 +302,11 @@ namespace plop::ui {
 						startEdit( i, Field::Pitch );
 						return;
 					}
-					if ( !( mMode == PluginMode::silica ) && periodRect( i ).contains( e.getPosition() ) ) {
+					if ( !( mMode == PluginMode::Silica ) && periodRect( i ).contains( e.getPosition() ) ) {
 						startEdit( i, Field::Period );
 						return;
 					}
-					if ( !( mMode == PluginMode::silica ) && offsetRect( i ).contains( e.getPosition() ) ) {
+					if ( !( mMode == PluginMode::Silica ) && offsetRect( i ).contains( e.getPosition() ) ) {
 						startEdit( i, Field::Offset );
 						return;
 					}
@@ -328,7 +328,7 @@ namespace plop::ui {
 			int                         mEditingIndex = -1;
 			Field                       mEditingField = Field::None;
 			bool                        mShowChannel  = false;
-			PluginMode                  mMode         = PluginMode::melody;
+			PluginMode                  mMode         = PluginMode::Melody;
 			int                         mScaleRoot    = 0;
 			int                         mScaleType    = 1; // Major
 
@@ -361,11 +361,11 @@ namespace plop::ui {
 			}
 
 			::juce::String pitchLabel( int pitch ) const {
-				if ( mMode == PluginMode::drums ) {
+				if ( mMode == PluginMode::Drums ) {
 					const char *name = music::gmDrumName( pitch );
 					return name ? "(" + ::juce::String( pitch ) + ") " + ::juce::String( name ) : ::juce::String( pitch );
 				}
-				if ( mMode == PluginMode::pro )
+				if ( mMode == PluginMode::Pro )
 					return ::juce::String( pitch );
 				// Melody, Silica, and Scale all show note names
 				return "(" + ::juce::String( pitch ) + ") " + midiPitchToName( pitch );
@@ -419,7 +419,7 @@ namespace plop::ui {
 				PeriodicNote updated = mNotes[ mEditingIndex ];
 				if ( mEditingField == Field::Pitch ) {
 					int pitch = ::juce::jlimit( 0, 127, mEditor.getText().getIntValue() );
-					if ( mMode == PluginMode::scale )
+					if ( mMode == PluginMode::Melody )
 						pitch = music::snapToScale( pitch, mScaleRoot, music::SCALES[ static_cast<size_t>( mScaleType ) ].pitchClasses );
 					updated.pitch = pitch;
 				} else if ( mEditingField == Field::Period )

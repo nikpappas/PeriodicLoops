@@ -13,6 +13,32 @@
 namespace plop::ui {
 
 	namespace {
+		inline void drawWaveThumbnail( ::juce::Graphics &g, ::juce::Rectangle<int> bounds, WaveShape shape, bool selected ) {
+			g.setColour( selected ? colours::accentOrange.withAlpha( 0.85f ) : colours::inputBg );
+			g.fillRoundedRectangle( bounds.toFloat(), 2.0f );
+
+			const float bx     = static_cast<float>( bounds.getX() );
+			const float by     = static_cast<float>( bounds.getY() );
+			const float bw     = static_cast<float>( bounds.getWidth() );
+			const float bh     = static_cast<float>( bounds.getHeight() );
+			const float margin = 2.5f;
+			const float waveH  = bh - 2.0f * margin;
+			const int   steps  = bounds.getWidth();
+
+			::juce::Path wave;
+			for ( int px = 0; px < steps; ++px ) {
+				const float t   = static_cast<float>( px ) / static_cast<float>( steps );
+				const float val = evalWaveShape( shape, t );
+				const float py  = by + margin + waveH * ( 1.0f - val );
+				if ( px == 0 )
+					wave.startNewSubPath( bx + static_cast<float>( px ), py );
+				else
+					wave.lineTo( bx + static_cast<float>( px ), py );
+			}
+			g.setColour( selected ? ::juce::Colours::white : colours::offWhite.withAlpha( 0.6f ) );
+			g.strokePath( wave, ::juce::PathStrokeType( 1.0f ) );
+		}
+
 		inline ::juce::String midiCCToName( int cc ) {
 			switch ( cc ) {
 				case 0:
@@ -123,10 +149,6 @@ namespace plop::ui {
 			};
 		}
 
-		bool isCollapsed() const {
-			return mCollapsed;
-		}
-
 		int getCollapsedHeight() const {
 			return HEADER_H;
 		}
@@ -146,20 +168,13 @@ namespace plop::ui {
 			const float  triX = static_cast<float>( PAD_MD );
 			const float  triY = static_cast<float>( HEADER_H ) / 2.0f;
 			::juce::Path tri;
-			if ( mCollapsed ) {
-				tri.addTriangle( triX, triY - 4.0f, triX, triY + 4.0f, triX + 6.0f, triY );
-			} else {
-				tri.addTriangle( triX, triY - 3.0f, triX + 8.0f, triY - 3.0f, triX + 4.0f, triY + 4.0f );
-			}
+			tri.addTriangle( triX, triY - 3.0f, triX + 8.0f, triY - 3.0f, triX + 4.0f, triY + 4.0f );
 			g.setColour( ::juce::Colours::white.withAlpha( 0.7f ) );
 			g.fillPath( tri );
 
 			g.setColour( ::juce::Colours::white );
 			g.setFont( ::juce::Font( FONT_LG, ::juce::Font::bold ) );
 			g.drawText( "CC Events", PAD_MD + 14, 0, getWidth() - PAD_MD - 14, HEADER_H, ::juce::Justification::centredLeft );
-
-			if ( mCollapsed )
-				return;
 
 			const auto addB = addButtonRect();
 			g.setColour( colours::addBg );
@@ -172,6 +187,7 @@ namespace plop::ui {
 			g.setFont( FONT_SM );
 			const int y_cols = HEADER_H + PAD_SM;
 			g.drawText( "CC", PAD_MD, y_cols, 55, 20, ::juce::Justification::centredLeft );
+			g.drawText( "~", PAD_MD + 68, y_cols, 40, 20, ::juce::Justification::centredLeft );
 			g.drawText( "Period", PAD_MD + 111, y_cols, 50, 20, ::juce::Justification::centredLeft );
 			g.drawText( "Offset", PAD_MD + 161, y_cols, 50, 20, ::juce::Justification::centredLeft );
 			g.drawText( "Ch", PAD_MD + 205, y_cols, 22, 20, ::juce::Justification::centredLeft );
@@ -182,22 +198,16 @@ namespace plop::ui {
 
 		void mouseDown( const ::juce::MouseEvent &e ) override {
 			if ( e.getPosition().y < HEADER_H ) {
-				mCollapsed = !mCollapsed;
-				mViewport.setVisible( !mCollapsed );
 				if ( mOnToggle )
 					mOnToggle();
 				repaint();
 				return;
 			}
-			if ( !mCollapsed && mCbs.onAddCc && addButtonRect().contains( e.getPosition() ) )
+			if ( mCbs.onAddCc && addButtonRect().contains( e.getPosition() ) )
 				mCbs.onAddCc();
 		}
 
 		void resized() override {
-			if ( mCollapsed ) {
-				mViewport.setVisible( false );
-				return;
-			}
 			mViewport.setVisible( true );
 			mViewport.setBounds( 0, TOTAL_HEADER_H, getWidth(), getHeight() - TOTAL_HEADER_H - ADD_BTN_H );
 			syncRowsSize();
@@ -210,7 +220,6 @@ namespace plop::ui {
 
 		const Callbacks mCbs;
 		const OnToggle  mOnToggle;
-		bool            mCollapsed = true;
 
 		::juce::Rectangle<int> addButtonRect() const {
 			return { PAD_MD, getHeight() - ADD_BTN_H + 7, getWidth() - 2 * PAD_MD, 22 };
@@ -258,6 +267,9 @@ namespace plop::ui {
 					}
 					g.setColour( ::juce::Colours::white );
 					drawCell( g, midiCCToName( cc.number ), numberRect( i ), i == mEditingIndex && mEditingField == Field::Number );
+					drawWaveThumbnail( g, shapeRect( i, 0 ), WaveShape::Sin, cc.shape == WaveShape::Sin );
+					drawWaveThumbnail( g, shapeRect( i, 1 ), WaveShape::Tri, cc.shape == WaveShape::Tri );
+					drawWaveThumbnail( g, shapeRect( i, 2 ), WaveShape::Saw, cc.shape == WaveShape::Saw );
 					drawCell(
 					  g, ::juce::String( cc.period, 2 ) + " b", periodRect( i ), i == mEditingIndex && mEditingField == Field::Period );
 					drawCell(
@@ -303,6 +315,18 @@ namespace plop::ui {
 						}
 						return;
 					}
+					for ( int s = 0; s < 3; ++s ) {
+						if ( shapeRect( i, s ).contains( pos ) ) {
+							PeriodicCC updated = mCcs[ i ];
+							updated.shape      = static_cast<WaveShape>( s );
+							mCcs[ i ]          = updated;
+							if ( onCcChanged )
+								onCcChanged( i, updated );
+							repaint();
+							return;
+						}
+					}
+
 					Field f = Field::None;
 					if ( numberRect( i ).contains( pos ) )
 						f = Field::Number;
@@ -389,6 +413,10 @@ namespace plop::ui {
 
 			::juce::Rectangle<int> numberRect( int i ) const {
 				return { PAD_MD, i * ROW_H, 55, ROW_H };
+			}
+			/// s = 0 (Sin), 1 (Tri), 2 (Saw)
+			::juce::Rectangle<int> shapeRect( int i, int s ) const {
+				return { PAD_MD + 57 + s * 18, i * ROW_H + ( ROW_H - 16 ) / 2, 16, 16 };
 			}
 			::juce::Rectangle<int> periodRect( int i ) const {
 				return { PAD_MD + 111, i * ROW_H, 50, ROW_H };

@@ -35,6 +35,9 @@ namespace plop::p_loops {
 		void removeNote( int index );
 		void updateNote( int index, const PeriodicNote &note );
 
+		/// Replace all notes at once (used when flattening groups to engine).
+		void replaceAllNotes( const ::std::vector<PeriodicNote> &notes );
+
 		// ---- CC management (message thread) --------------------------------------
 
 		const ::std::vector<PeriodicCC> &getCCs() const {
@@ -44,6 +47,16 @@ namespace plop::p_loops {
 		void addCc( const PeriodicCC &cc );
 		void removeCc( int index );
 		void updateCc( int index, const PeriodicCC &cc );
+
+		// ---- Group management (message thread) -----------------------------------
+
+		const ::std::vector<NoteGroup> &getGroups() const {
+			return mGroups;
+		}
+
+		void setGroups( const ::std::vector<NoteGroup> &groups ) {
+			mGroups = groups;
+		}
 
 		// ---- Silica mode ---------------------------------------------------------
 
@@ -114,6 +127,7 @@ namespace plop::p_loops {
 
 		::std::vector<PeriodicNote> mUiNotes;
 		::std::vector<PeriodicCC>   mUiCcs;
+		::std::vector<NoteGroup>    mGroups;
 
 		template <typename Fn>
 		void swapNoteBuffer( Fn &&fn ) {
@@ -133,7 +147,7 @@ namespace plop::p_loops {
 
 		// -------------------------------------------------------------------------
 
-		PluginMode mMode         = PluginMode::melody;
+		PluginMode mMode         = PluginMode::Melody;
 		float      mSilicaPeriod = 4.0f;
 		int        mScaleRoot    = 0; // 0 = C
 		int        mScaleType    = 1; // index into music::SCALES (1 = Major)

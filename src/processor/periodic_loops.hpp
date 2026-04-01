@@ -103,6 +103,9 @@ namespace plop::p_loops {
 		void updateNote( int index, const PeriodicNote &note ) {
 			mEngine.updateNote( index, note );
 		}
+		void replaceAllNotes( const ::std::vector<PeriodicNote> &notes ) {
+			mEngine.replaceAllNotes( notes );
+		}
 
 		const ::std::vector<PeriodicCC> &getCCs() const {
 			return mEngine.getCCs();
@@ -115,6 +118,13 @@ namespace plop::p_loops {
 		}
 		void updateCc( int index, const PeriodicCC &cc ) {
 			mEngine.updateCc( index, cc );
+		}
+
+		const ::std::vector<NoteGroup> &getGroups() const {
+			return mEngine.getGroups();
+		}
+		void setGroups( const ::std::vector<NoteGroup> &groups ) {
+			mEngine.setGroups( groups );
 		}
 
 		void setSilicaPeriod( float period ) {
