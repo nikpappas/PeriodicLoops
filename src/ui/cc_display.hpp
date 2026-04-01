@@ -108,42 +108,29 @@ namespace plop::ui {
 				if ( cc.period <= 0.0f )
 					continue;
 
-				// Beat grid lines (subtle)
-				g.setColour( colours::subtleGrey );
-				for ( float b = std::ceil( beatStart ); b < beatStart + WINDOW; b += 1.0f ) {
-					const int gx = static_cast<int>( ( b - beatStart ) / WINDOW * w );
-					g.drawVerticalLine( gx, static_cast<float>( y ), static_cast<float>( y + LANE_H ) );
-				}
+				// Waveform as fixed-x dots
+				constexpr int N_DOTS  = 32;
+				const int     margin  = static_cast<int>( LANE_H * 0.12f );
+				const float   waveH   = static_cast<float>( LANE_H - 2 * margin );
+				const float   spacing = static_cast<float>( w ) / ( N_DOTS - 1 );
+				const int     cursorX = static_cast<int>( CURSOR_T * w );
 
-				// Waveform
-				const int   margin = static_cast<int>( LANE_H * 0.12f );
-				const float waveH  = static_cast<float>( LANE_H - 2 * margin );
+				for ( int d = 0; d < N_DOTS; ++d ) {
+					const float dx        = d * spacing;
+					const float beat      = beatStart + WINDOW * dx / static_cast<float>( w );
+					const float val       = evalWaveShape( cc.shape, ( beat + cc.offset ) / cc.period );
+					const float dotY      = static_cast<float>( y + margin ) + waveH * ( 1.0f - val );
+					const bool  isCurrent = ( std::abs( dx - static_cast<float>( cursorX ) ) < spacing * 0.5f );
+					const float r         = isCurrent && !isDisabled ? 4.5f : 2.5f;
 
-				::juce::Path wave;
-				for ( int px = 0; px < w; ++px ) {
-					const float beat = beatStart + WINDOW * static_cast<float>( px ) / w;
-					const float val  = evalWaveShape( cc.shape, ( beat + cc.offset ) / cc.period );
-					const float py   = y + margin + waveH * ( 1.0f - val );
-					if ( px == 0 )
-						wave.startNewSubPath( static_cast<float>( px ), py );
-					else
-						wave.lineTo( static_cast<float>( px ), py );
+					g.setColour( isCurrent && !isDisabled ? ::juce::Colours::white
+					                                      : colours::accentOrange.withAlpha( isDisabled ? 0.2f : 0.65f ) );
+					g.fillEllipse( dx - r, dotY - r, r * 2.0f, r * 2.0f );
 				}
-				g.setColour( colours::accentOrange.withAlpha( isDisabled ? 0.25f : 0.75f ) );
-				g.strokePath( wave, ::juce::PathStrokeType( 1.5f ) );
 
 				// Cursor line
-				const int cursorX = static_cast<int>( CURSOR_T * w );
-				g.setColour( ::juce::Colours::white.withAlpha( 0.25f ) );
+				g.setColour( ::juce::Colours::white.withAlpha( 0.15f ) );
 				g.drawVerticalLine( cursorX, static_cast<float>( y ), static_cast<float>( y + LANE_H ) );
-
-				// Current-value dot on the waveform
-				if ( !isDisabled ) {
-					const float curVal = evalWaveShape( cc.shape, ( mCurrentBeat + cc.offset ) / cc.period );
-					const float dotY = y + margin + waveH * ( 1.0f - curVal );
-					g.setColour( ::juce::Colours::white );
-					g.fillEllipse( static_cast<float>( cursorX ) - 3.5f, dotY - 3.5f, 7.0f, 7.0f );
-				}
 
 				// Label (drawn over the left edge of the wave)
 				g.setColour( colours::offWhite );

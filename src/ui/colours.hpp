@@ -19,7 +19,7 @@ namespace plop::colours {
 	const auto orbitalBg       = ::juce::Colour( 0xff1a1a2e ); // orbital display canvas
 	const auto settingsBg      = ::juce::Colour( 0xff181828 ); // settings panel
 	const auto patternPickerBg = ::juce::Colour( 0xff0f0f1c ); // pattern picker panel
-	const auto panelBg         = ::juce::Colour( 0xff12121f ); // note/CC list panel background
+	const auto panelBg         = ::juce::Colour( 0xffD9D9D9 ); // note/CC list panel background
 	const auto rowAlt          = ::juce::Colour( 0xff1e1e30 ); // alternating row tint
 	const auto inputBg         = ::juce::Colour( 0xff2a2a44 ); // text editor bg, active field highlight
 	const auto addBg           = ::juce::Colour( 0xff223322 ); // add button / add-mode toggle bg
