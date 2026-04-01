@@ -19,7 +19,6 @@ namespace plop::ui {
 
 			const float bx     = static_cast<float>( bounds.getX() );
 			const float by     = static_cast<float>( bounds.getY() );
-			const float bw     = static_cast<float>( bounds.getWidth() );
 			const float bh     = static_cast<float>( bounds.getHeight() );
 			const float margin = 2.5f;
 			const float waveH  = bh - 2.0f * margin;
@@ -161,18 +160,7 @@ namespace plop::ui {
 		void paint( ::juce::Graphics &g ) override {
 			g.fillAll( colours::panelBg );
 
-			g.setColour( colours::ccHeaderBg );
-			g.fillRect( 0, 0, getWidth(), HEADER_H );
-
-			// Collapse/expand triangle
-			const float  triX = static_cast<float>( PAD_MD );
-			const float  triY = static_cast<float>( HEADER_H ) / 2.0f;
-			::juce::Path tri;
-			tri.addTriangle( triX, triY - 3.0f, triX + 8.0f, triY - 3.0f, triX + 4.0f, triY + 4.0f );
-			g.setColour( ::juce::Colours::white.withAlpha( 0.7f ) );
-			g.fillPath( tri );
-
-			g.setColour( ::juce::Colours::white );
+			g.setColour( colours::darkestGrey );
 			g.setFont( ::juce::Font( FONT_LG, ::juce::Font::bold ) );
 			g.drawText( "CC Events", PAD_MD + 14, 0, getWidth() - PAD_MD - 14, HEADER_H, ::juce::Justification::centredLeft );
 
@@ -183,7 +171,7 @@ namespace plop::ui {
 			g.setFont( FONT_LG );
 			g.drawText( "+ Add CC", addB, ::juce::Justification::centred );
 
-			g.setColour( colours::offWhite );
+			g.setColour( colours::defText );
 			g.setFont( FONT_SM );
 			const int y_cols = HEADER_H + PAD_SM;
 			g.drawText( "CC", PAD_MD, y_cols, 55, 20, ::juce::Justification::centredLeft );
@@ -266,15 +254,13 @@ namespace plop::ui {
 						g.fillRect( 0, y, getWidth(), ROW_H );
 					}
 					g.setColour( ::juce::Colours::white );
-					drawCell( g, midiCCToName( cc.number ), numberRect( i ), i == mEditingIndex && mEditingField == Field::Number );
+					drawCell( g, midiCCToName( cc.number ), numberRect( i ) );
 					drawWaveThumbnail( g, shapeRect( i, 0 ), WaveShape::Sin, cc.shape == WaveShape::Sin );
 					drawWaveThumbnail( g, shapeRect( i, 1 ), WaveShape::Tri, cc.shape == WaveShape::Tri );
 					drawWaveThumbnail( g, shapeRect( i, 2 ), WaveShape::Saw, cc.shape == WaveShape::Saw );
-					drawCell(
-					  g, ::juce::String( cc.period, 2 ) + " b", periodRect( i ), i == mEditingIndex && mEditingField == Field::Period );
-					drawCell(
-					  g, ::juce::String( cc.offset, 2 ) + " b", offsetRect( i ), i == mEditingIndex && mEditingField == Field::Offset );
-					drawCell( g, ::juce::String( cc.channel ), channelRect( i ), i == mEditingIndex && mEditingField == Field::Channel );
+					drawCell( g, ::juce::String( cc.period, 2 ) + " b", periodRect( i ) );
+					drawCell( g, ::juce::String( cc.offset, 2 ) + " b", offsetRect( i ) );
+					drawCell( g, ::juce::String( cc.channel ), channelRect( i ) );
 
 					const auto sb = soloRect( i );
 					g.setColour( colours::accentOrange );
@@ -435,12 +421,8 @@ namespace plop::ui {
 				return { getWidth() - PAD_MD - 46, i * ROW_H + ( ROW_H - 16 ) / 2, 16, 16 };
 			}
 
-			void drawCell( ::juce::Graphics &g, const ::juce::String &text, ::juce::Rectangle<int> bounds, bool isActive ) const {
-				if ( isActive ) {
-					g.setColour( colours::inputBg );
-					g.fillRect( bounds );
-				}
-				g.setColour( ::juce::Colours::white );
+			void drawCell( ::juce::Graphics &g, const ::juce::String &text, ::juce::Rectangle<int> bounds ) const {
+				g.setColour( colours::darkestGrey );
 				g.drawText( text, bounds, ::juce::Justification::centredLeft );
 			}
 

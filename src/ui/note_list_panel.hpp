@@ -78,11 +78,11 @@ namespace plop::ui {
 
 			g.setColour( colours::noteHeaderBg );
 			g.fillRect( 0, 0, getWidth(), HEADER_H );
-			g.setColour( ::juce::Colours::white );
+			g.setColour( colours::defText );
 			g.setFont( ::juce::Font( FONT_LG, ::juce::Font::bold ) );
 			g.drawText( "Notes", PAD_MD, 0, getWidth() - PAD_MD, HEADER_H, ::juce::Justification::centredLeft );
 
-			g.setColour( colours::offWhite );
+			g.setColour( colours::defText );
 			g.setFont( FONT_SM );
 			const int y_cols = HEADER_H + PAD_SM;
 			g.drawText( mMode == PluginMode::Drums ? "Drum" : "Pitch", PAD_MD + 22, y_cols, 65, 20, ::juce::Justification::centredLeft );
@@ -178,7 +178,6 @@ namespace plop::ui {
 			}
 
 			void paint( ::juce::Graphics &g ) override {
-				g.fillAll( colours::panelBg );
 				g.setFont( FONT_LG );
 				for ( int i = 0; i < static_cast<int>( mNotes.size() ); ++i ) {
 					const auto &note = mNotes[ i ];
@@ -197,19 +196,11 @@ namespace plop::ui {
 
 					const bool silica = ( mMode == PluginMode::Silica );
 					g.setColour( ::juce::Colours::white );
-					drawCell( g, pitchLabel( note.pitch ), pitchRect( i ), i == mEditingIndex && mEditingField == Field::Pitch );
-					drawCell( g,
-					          ::juce::String( note.period, 2 ) + " b",
-					          periodRect( i ),
-					          i == mEditingIndex && mEditingField == Field::Period,
-					          silica );
-					drawCell( g,
-					          ::juce::String( note.offset, 2 ) + " b",
-					          offsetRect( i ),
-					          i == mEditingIndex && mEditingField == Field::Offset,
-					          silica );
+					drawCell( g, pitchLabel( note.pitch ), pitchRect( i ) );
+					drawCell( g, ::juce::String( note.period, 2 ) + " b", periodRect( i ) );
+					drawCell( g, ::juce::String( note.offset, 2 ) + " b", offsetRect( i ) );
 					if ( mShowChannel )
-						drawCell( g, ::juce::String( note.channel ), channelRect( i ), i == mEditingIndex && mEditingField == Field::Channel );
+						drawCell( g, ::juce::String( note.channel ), channelRect( i ) );
 
 					const auto rb = removeRect( i );
 					g.setColour( colours::removeBg );
@@ -371,16 +362,8 @@ namespace plop::ui {
 				return "(" + ::juce::String( pitch ) + ") " + midiPitchToName( pitch );
 			}
 
-			void drawCell( ::juce::Graphics      &g,
-			               const ::juce::String  &text,
-			               ::juce::Rectangle<int> bounds,
-			               bool                   isActive,
-			               bool                   dimmed = false ) const {
-				if ( isActive ) {
-					g.setColour( colours::inputBg );
-					g.fillRect( bounds );
-				}
-				g.setColour( dimmed ? ::juce::Colours::white.withAlpha( 0.35f ) : ::juce::Colours::white );
+			void drawCell( ::juce::Graphics &g, const ::juce::String &text, ::juce::Rectangle<int> bounds ) const {
+				g.setColour( plop::colours::darkestGrey );
 				g.drawText( text, bounds, ::juce::Justification::centredLeft );
 			}
 

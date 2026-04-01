@@ -15,24 +15,26 @@ namespace plop::colours {
 	const auto replaceModeAccent  = ::juce::Colour( 0xffcc6666 ); // red — replace-mode border in pattern picker
 
 	// ---- Backgrounds --------------------------------------------------------
-	const auto lcdBgColour     = ::juce::Colour( 0xff0b0b18 ); // darkest — CC display even lanes
-	const auto orbitalBg       = ::juce::Colour( 0xff1a1a2e ); // orbital display canvas
-	const auto settingsBg      = ::juce::Colour( 0xff181828 ); // settings panel
+	const auto panelBg     = ::juce::Colour( 0xffE4E4E4 ); // note/CC list panel background
+	const auto lcdBgColour = panelBg; // ::juce::Colour( 0xff0b0b18 ); // darkest — CC display even lanes
+	const auto orbitalBg   = panelBg; //::juce::Colour( 0xff1a1a2e ); // orbital display canvas
+	//const auto settingsBg      = ::juce::Colour( 0xff181828 ); // settings panel
 	const auto patternPickerBg = ::juce::Colour( 0xff0f0f1c ); // pattern picker panel
-	const auto panelBg         = ::juce::Colour( 0xffD9D9D9 ); // note/CC list panel background
-	const auto rowAlt          = ::juce::Colour( 0xff1e1e30 ); // alternating row tint
+	const auto rowAlt          = ::juce::Colour( 0xffD4D4D4 ); // alternating row tint
 	const auto inputBg         = ::juce::Colour( 0xff2a2a44 ); // text editor bg, active field highlight
 	const auto addBg           = ::juce::Colour( 0xff223322 ); // add button / add-mode toggle bg
 	const auto removeBg        = ::juce::Colour( 0xff553333 ); // remove button bg
 	const auto replaceModeBg   = ::juce::Colour( 0xff221a1a ); // replace-mode toggle bg in pattern picker
 
+	const auto darkestGrey = ::juce::Colour( 0xff323232 );
+
 	// ---- Headers & borders --------------------------------------------------
-	const auto noteHeaderBg = ::juce::Colour( 0xff555577 ); // note list panel header
-	const auto ccHeaderBg   = ::juce::Colour( 0xff445555 ); // CC list panel header
+	const auto noteHeaderBg = panelBg;                      // ::juce::Colour( 0xff555577 ); // note list panel header
 	const auto borderLine   = ::juce::Colour( 0xff333344 ); // separators and borders
 	const auto offWhite     = ::juce::Colour( 0xff888899 ); // column labels, dim text
 	const auto subtleGrey   = ::juce::Colour( 0xff222233 ); // beat grid lines in CC display
 
+	const auto defText = darkestGrey;
 	// ---- Orbital display ----------------------------------------------------
 	const auto orbitalDotFallback = ::juce::Colour( 0xffaaaacc ); // dot when no colour assigned
 

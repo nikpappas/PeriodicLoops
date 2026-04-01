@@ -10,8 +10,10 @@
 #include "music/patterns.hpp"
 #include "music/scales.hpp"
 #include "processor/periodic_loops.hpp"
+#include "ui/cc_controls.hpp"
 #include "ui/cc_display.hpp"
 #include "ui/cc_list_panel.hpp"
+#include "ui/circle_grid.hpp"
 #include "ui/colours.hpp"
 #include "ui/group_list_panel.hpp"
 #include "ui/midi_export_button.hpp"
@@ -31,11 +33,12 @@ namespace plop::ui {
 	 private:
 		PlopLookAndFeel          mLookAndFeel;
 		::plop::p_loops::PLoops &mPluginInstanceRef;
-		TimeDisplay              mTimeDisplay;
 		OrbitalDisplay           mOrbitalDisplay;
 		NoteListPanel            mNoteListPanel;
 		GroupListPanel           mGroupListPanel;
 		CcListPanel              mCcListPanel;
+		CircleGrid               mCircleGrid;
+		CcControls               mCcControls;
 		CcDisplay                mCcDisplay;
 		MidiExportButton         mMidiExportButton;
 		PatternPicker            mPatternPicker;
@@ -146,6 +149,10 @@ namespace plop::ui {
 			::juce::CallOutBox::launchAsynchronously( std::move( selector ), screenBounds, nullptr );
 		}
 
+		void paint( ::juce::Graphics &g ) override {
+			g.fillAll( colours::panelBg );
+		}
+
 		void resized() override {
 			constexpr int panelW = 320;
 			constexpr int top_h  = 50;
@@ -155,7 +162,6 @@ namespace plop::ui {
 			const int     h      = getHeight();
 
 			// ---- Top bar ----
-			mTimeDisplay.setBounds( 10, btn_y, 200, btn_h );
 			mMidiExportButton.setBounds( w - 90, btn_y, 80, btn_h );
 
 			constexpr int PP_W    = 70;
@@ -185,7 +191,11 @@ namespace plop::ui {
 			} else {
 				mNoteListPanel.setBounds( 0, rightY + settingsH, panelW, panelH );
 			}
-			mCcListPanel.setBounds( w - panelW, rightY, panelW, panelH );
+			constexpr int CIRCLE_GRID_H = 120;
+			constexpr int CC_CONTROLS_H = 120;
+			mCircleGrid.setBounds( w - panelW, rightY, panelW, CIRCLE_GRID_H );
+			mCcListPanel.setBounds( w - panelW, rightY + CIRCLE_GRID_H, panelW, panelH - CIRCLE_GRID_H - CC_CONTROLS_H );
+			mCcControls.setBounds( w - panelW, rightY + panelH - CC_CONTROLS_H, panelW, CC_CONTROLS_H );
 		}
 
 		void timerCallback() override {
@@ -260,8 +270,6 @@ namespace plop::ui {
 				resized();
 			}
 
-			mTimeDisplay.setTime( currentTime );
-			mTimeDisplay.repaint();
 			mLastTime = currentTime;
 		}
 	};
@@ -369,13 +377,14 @@ namespace plop::ui {
 
 		setLookAndFeel( &mLookAndFeel );
 
-		addAndMakeVisible( mTimeDisplay );
 		addAndMakeVisible( mOrbitalDisplay );
 		addAndMakeVisible( mCcDisplay );
 		mNoteListPanel.setShowChannel( mIsStandalone );
 		addAndMakeVisible( mNoteListPanel );
 		addAndMakeVisible( mGroupListPanel );
+		addAndMakeVisible( mCircleGrid );
 		addAndMakeVisible( mCcListPanel );
+		addAndMakeVisible( mCcControls );
 		addAndMakeVisible( mMidiExportButton );
 		addAndMakeVisible( mPatternPicker );
 		addAndMakeVisible( mSettingsPanel );

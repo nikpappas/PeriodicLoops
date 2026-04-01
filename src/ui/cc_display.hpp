@@ -133,7 +133,7 @@ namespace plop::ui {
 				g.drawVerticalLine( cursorX, static_cast<float>( y ), static_cast<float>( y + LANE_H ) );
 
 				// Label (drawn over the left edge of the wave)
-				g.setColour( colours::offWhite );
+				g.setColour( colours::darkestGrey );
 				g.setFont( FONT_SM );
 				g.drawText( ccDisplayName( cc.number ), PAD_SM, y + ( LANE_H - 14 ) / 2, LABEL_W, 14, ::juce::Justification::centredLeft );
 
