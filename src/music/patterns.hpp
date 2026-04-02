@@ -13,7 +13,7 @@ namespace plop::music {
 
    /// Expand a NoteGroup into concrete PeriodicNote voices based on the pattern function.
    /// Used by Silica and Melody modes where voices are auto-generated.
-   inline ::std::vector<PeriodicNote> generateVoices( const NoteGroup              &group,
+   inline ::std::vector<PeriodicNote> generateVoices( const ::plop::NoteGroup      &group,
                                                       int                           scaleRoot,
                                                       const ::std::array<bool, 12> &scalePc ) {
       ::std::vector<PeriodicNote> out;
@@ -190,7 +190,7 @@ namespace plop::music {
 
    /// Flatten a list of groups into a single note vector for the engine.
    /// Respects mute/solo state.
-   inline ::std::vector<PeriodicNote> flattenGroups( const ::std::vector<NoteGroup> &groups ) {
+   inline ::std::vector<PeriodicNote> flattenGroups( const ::std::vector<::plop::NoteGroup> &groups ) {
       bool anySolo = false;
       for ( const auto &g : groups ) {
          if ( g.solo ) {

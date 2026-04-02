@@ -15,11 +15,7 @@ namespace plop::ui {
 	/// Drag up/down to change value. 0° = bottom-left (224°), full range = 270° clockwise sweep.
 	class Knob : public ::juce::Component {
 	 public:
-		Knob() {
-			setMouseCursor( ::juce::MouseCursor::UpDownResizeCursor );
-		}
-
-		Knob( const ::juce::String &label, std::function<void( float )> onChange ) :
+		Knob( const ::juce::String &label, const std::function<void( float )> onChange ) :
 				  mLabel( label ), mOnChange( std::move( onChange ) ) {
 			setMouseCursor( ::juce::MouseCursor::UpDownResizeCursor );
 		}
@@ -42,6 +38,10 @@ namespace plop::ui {
 			return mValue;
 		}
 
+		float getNormValue() const {
+			return ( mMax > mMin ) ? ( mValue - mMin ) / ( mMax - mMin ) : 0.0f;
+		}
+
 		void setRange( float min, float max ) {
 			mMin   = min;
 			mMax   = max;
@@ -49,30 +49,44 @@ namespace plop::ui {
 			repaint();
 		}
 
+		void setActive( bool active ) {
+			mActive = active;
+			repaint();
+		}
+
+		bool isActive() const {
+			return mActive;
+		}
+
 		void paint( ::juce::Graphics &g ) override {
-			const float labelH = FONT_SM + 6.0f;
-			const float dialH  = static_cast<float>( getHeight() ) - labelH;
-			const float size   = std::min( static_cast<float>( getWidth() ), dialH );
-			const float cx     = static_cast<float>( getWidth() ) / 2.0f;
-			const float cy     = dialH / 2.0f;
-			const float r      = size / 2.0f - 4.0f;
+			g.fillAll( colours::accentBlue );
+			const float labelH = mLabel.isEmpty() ? 0.0f : FONT_SM + 6.0f;
+
+			g.setColour( ::juce::Colours::black );
+			g.setFont( ::juce::Font( FONT_SM ) );
+			g.drawText( mLabel, 0, 0, getWidth(), static_cast<int>( labelH ), ::juce::Justification::centred );
+
+			const float dialH = static_cast<float>( getHeight() ) - labelH;
+			const float size  = std::min( static_cast<float>( getWidth() ), dialH );
+			const float cx    = static_cast<float>( getWidth() ) / 2.0f;
+			const float cy    = dialH / 2.0f + 16.0f;
+			const float r     = size / 2.0f - 4.0f;
 
 			// --- Circle ---
 			g.setColour( colours::darkestGrey );
 			g.drawEllipse( cx - r, cy - r, r * 2.0f, r * 2.0f, 1.5f );
 
 			// --- Indicator line ---
-			const float norm  = ( mMax > mMin ) ? ( mValue - mMin ) / ( mMax - mMin ) : 0.0f;
-			const float angle = START_ANGLE + ( END_ANGLE - START_ANGLE ) * norm;
-			const float lx    = cx + r * std::sin( angle );
-			const float ly    = cy - r * std::cos( angle );
-			g.setColour( colours::accentOrange );
-			g.drawLine( cx, cy, lx, ly, 1.5f );
+			if ( mActive ) {
+				const float norm  = getNormValue();
+				const float angle = START_ANGLE + ( END_ANGLE - START_ANGLE ) * norm;
+				const float lx    = cx + r * std::sin( angle );
+				const float ly    = cy - r * std::cos( angle );
+				g.setColour( colours::accentOrange );
+				g.drawLine( cx, cy, lx, ly, 1.5f );
+			}
 
 			// --- Label ---
-			g.setColour( ::juce::Colours::black );
-			g.setFont( ::juce::Font( FONT_SM ) );
-			g.drawText( mLabel, 0, static_cast<int>( dialH ), getWidth(), static_cast<int>( labelH ), ::juce::Justification::centred );
 		}
 
 		void mouseDown( const ::juce::MouseEvent &e ) override {
@@ -105,6 +119,7 @@ namespace plop::ui {
 		float                        mValue          = 0.0f;
 		int                          mDragStartY     = 0;
 		float                        mDragStartValue = 0.0f;
+		bool                         mActive         = true;
 
 		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR( Knob )
 	};

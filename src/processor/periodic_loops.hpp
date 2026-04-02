@@ -107,23 +107,23 @@ namespace plop::p_loops {
 			mEngine.replaceAllNotes( notes );
 		}
 
-		const ::std::vector<PeriodicCC> &getCCs() const {
+		const ::std::vector<::plop::PeriodicCC> &getCCs() const {
 			return mEngine.getCCs();
 		}
-		void addCc( const PeriodicCC &cc ) {
+		void addCc( const ::plop::PeriodicCC &cc ) {
 			mEngine.addCc( cc );
 		}
 		void removeCc( int index ) {
 			mEngine.removeCc( index );
 		}
-		void updateCc( int index, const PeriodicCC &cc ) {
+		void updateCc( int index, const ::plop::PeriodicCC &cc ) {
 			mEngine.updateCc( index, cc );
 		}
 
-		const ::std::vector<NoteGroup> &getGroups() const {
+		const ::std::vector<::plop::NoteGroup> &getGroups() const {
 			return mEngine.getGroups();
 		}
-		void setGroups( const ::std::vector<NoteGroup> &groups ) {
+		void setGroups( const ::std::vector<::plop::NoteGroup> &groups ) {
 			mEngine.setGroups( groups );
 		}
 

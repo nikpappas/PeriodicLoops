@@ -80,7 +80,7 @@ namespace plop::ui {
 			g.fillRect( 0, 0, getWidth(), HEADER_H );
 			g.setColour( colours::defText );
 			g.setFont( ::juce::Font( FONT_LG, ::juce::Font::bold ) );
-			g.drawText( "Notes", PAD_MD, 0, getWidth() - PAD_MD, HEADER_H, ::juce::Justification::centredLeft );
+			g.drawText( "NOTES", PAD_MD, 0, getWidth() - PAD_MD, HEADER_H, ::juce::Justification::centredLeft );
 
 			g.setColour( colours::defText );
 			g.setFont( FONT_SM );
@@ -194,7 +194,6 @@ namespace plop::ui {
 					g.setColour( colour.brighter( 0.3f ) );
 					g.drawRoundedRectangle( sb.toFloat(), swatchCornerRadius, 1.0f );
 
-					const bool silica = ( mMode == PluginMode::Silica );
 					g.setColour( ::juce::Colours::white );
 					drawCell( g, pitchLabel( note.pitch ), pitchRect( i ) );
 					drawCell( g, ::juce::String( note.period, 2 ) + " b", periodRect( i ) );

@@ -18,6 +18,8 @@ using ::juce::MemoryBlock;
 using ::juce::MidiBuffer;
 using ::juce::PluginHostType;
 
+using ::plop::PeriodicCC;
+
 using ::std::initializer_list;
 using ::std::string;
 using ::std::to_string;

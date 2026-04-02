@@ -23,7 +23,7 @@ namespace plop::ui {
    class GroupListPanel : public ::juce::Component {
     public:
       struct Callbacks {
-         std::function<void( const ::std::vector<NoteGroup> & )> onGroupsChanged;
+         std::function<void( const ::std::vector<::plop::NoteGroup> & )> onGroupsChanged;
       };
 
       explicit GroupListPanel( Callbacks cbs ) : mCbs( std::move( cbs ) ) {
@@ -38,7 +38,7 @@ namespace plop::ui {
       }
 
       /// Full replacement — rebuilds all panel widgets. Use for mode switch / state load.
-      void setGroups( const ::std::vector<NoteGroup> &groups ) {
+      void setGroups( const ::std::vector<::plop::NoteGroup> &groups ) {
          mGroups = groups;
          rebuildPanels();
       }
@@ -48,7 +48,7 @@ namespace plop::ui {
          mScaleType = scaleType;
       }
 
-      const ::std::vector<NoteGroup> &getGroups() const {
+      const ::std::vector<::plop::NoteGroup> &getGroups() const {
          return mGroups;
       }
 

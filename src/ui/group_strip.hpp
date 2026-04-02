@@ -55,8 +55,6 @@ namespace plop::ui {
 			// Add button
 			if ( static_cast<int>( mGroups.size() ) < MAX_GROUPS ) {
 				const auto addRect = ::juce::Rectangle<int>( x, ( getHeight() - swatchSize ) / 2, swatchSize, swatchSize );
-				g.setColour( colours::addBg );
-				g.fillRoundedRectangle( addRect.toFloat(), swatchSize / 2.0f );
 				g.setColour( colours::addAccent );
 				g.setFont( FONT_LG );
 				g.drawText( "+", addRect, ::juce::Justification::centred );

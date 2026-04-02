@@ -125,9 +125,9 @@ namespace plop::ui {
 	class CcListPanel : public ::juce::Component {
 	 public:
 		struct Callbacks {
-			std::function<void( int )>             onRemoveCc;
-			std::function<void()>                  onAddCc;
-			std::function<void( int, PeriodicCC )> onCcChanged;
+			std::function<void( int )>                     onRemoveCc;
+			std::function<void()>                          onAddCc;
+			std::function<void( int, ::plop::PeriodicCC )> onCcChanged;
 		};
 
 		using OnToggle = std::function<void()>;
@@ -142,7 +142,7 @@ namespace plop::ui {
 				if ( mCbs.onRemoveCc )
 					mCbs.onRemoveCc( i );
 			};
-			mRows.onCcChanged = [ this ]( int i, PeriodicCC cc ) {
+			mRows.onCcChanged = [ this ]( int i, ::plop::PeriodicCC cc ) {
 				if ( mCbs.onCcChanged )
 					mCbs.onCcChanged( i, cc );
 			};
@@ -152,7 +152,7 @@ namespace plop::ui {
 			return HEADER_H;
 		}
 
-		void setCCs( std::vector<PeriodicCC> ccs ) {
+		void setCCs( std::vector<::plop::PeriodicCC> ccs ) {
 			mRows.setCCs( std::move( ccs ) );
 			syncRowsSize();
 		}
@@ -221,8 +221,8 @@ namespace plop::ui {
 		// ---- scrollable rows -----------------------------------------------
 		class RowsComponent : public ::juce::Component {
 		 public:
-			std::function<void( int )>             onRemoveCc;
-			std::function<void( int, PeriodicCC )> onCcChanged;
+			std::function<void( int )>                     onRemoveCc;
+			std::function<void( int, ::plop::PeriodicCC )> onCcChanged;
 
 			RowsComponent() {
 				mEditor.setJustification( ::juce::Justification::centred );
@@ -235,7 +235,7 @@ namespace plop::ui {
 				addChildComponent( mEditor );
 			}
 
-			void setCCs( const std::vector<PeriodicCC> &ccs ) {
+			void setCCs( const std::vector<::plop::PeriodicCC> &ccs ) {
 				mCcs = ccs;
 			}
 
@@ -255,9 +255,9 @@ namespace plop::ui {
 					}
 					g.setColour( ::juce::Colours::white );
 					drawCell( g, midiCCToName( cc.number ), numberRect( i ) );
-					drawWaveThumbnail( g, shapeRect( i, 0 ), WaveShape::Sin, cc.shape == WaveShape::Sin );
-					drawWaveThumbnail( g, shapeRect( i, 1 ), WaveShape::Tri, cc.shape == WaveShape::Tri );
-					drawWaveThumbnail( g, shapeRect( i, 2 ), WaveShape::Saw, cc.shape == WaveShape::Saw );
+					drawWaveThumbnail( g, shapeRect( i, 0 ), ::plop::WaveShape::Sin, cc.shape == ::plop::WaveShape::Sin );
+					drawWaveThumbnail( g, shapeRect( i, 1 ), ::plop::WaveShape::Tri, cc.shape == ::plop::WaveShape::Tri );
+					drawWaveThumbnail( g, shapeRect( i, 2 ), ::plop::WaveShape::Saw, cc.shape == ::plop::WaveShape::Saw );
 					drawCell( g, ::juce::String( cc.period, 2 ) + " b", periodRect( i ) );
 					drawCell( g, ::juce::String( cc.offset, 2 ) + " b", offsetRect( i ) );
 					drawCell( g, ::juce::String( cc.channel ), channelRect( i ) );
@@ -287,15 +287,15 @@ namespace plop::ui {
 					}
 
 					if ( soloRect( i ).contains( pos ) ) {
-						PeriodicCC updated = mCcs[ i ];
-						updated.solo       = !updated.solo;
+						::plop::PeriodicCC updated = mCcs[ i ];
+						updated.solo               = !updated.solo;
 						onCcChanged( i, updated );
 						if ( !e.mods.isCtrlDown() ) {
 							for ( int j = 0; j < static_cast<int>( mCcs.size() ); ++j ) {
 								if ( j == i || !mCcs[ j ].solo )
 									continue;
-								PeriodicCC other = mCcs[ j ];
-								other.solo       = false;
+								::plop::PeriodicCC other = mCcs[ j ];
+								other.solo               = false;
 								onCcChanged( j, other );
 							}
 						}
@@ -303,9 +303,9 @@ namespace plop::ui {
 					}
 					for ( int s = 0; s < 3; ++s ) {
 						if ( shapeRect( i, s ).contains( pos ) ) {
-							PeriodicCC updated = mCcs[ i ];
-							updated.shape      = static_cast<WaveShape>( s );
-							mCcs[ i ]          = updated;
+							::plop::PeriodicCC updated = mCcs[ i ];
+							updated.shape              = static_cast<::plop::WaveShape>( s );
+							mCcs[ i ]                  = updated;
 							if ( onCcChanged )
 								onCcChanged( i, updated );
 							repaint();
@@ -339,7 +339,7 @@ namespace plop::ui {
 					return;
 				const int dy = mDragStartY - e.getPosition().y;
 
-				PeriodicCC updated = mDragStartCc;
+				::plop::PeriodicCC updated = mDragStartCc;
 				if ( mDragField == Field::Number )
 					updated.number = ::juce::jlimit( 0, 127, mDragStartCc.number + dy / 3 );
 				else if ( mDragField == Field::Period )
@@ -386,16 +386,16 @@ namespace plop::ui {
 			enum class Field { None, Number, Period, Offset, Channel };
 			static constexpr int ROW_H = 28;
 
-			std::vector<PeriodicCC> mCcs;
-			::juce::TextEditor      mEditor;
+			std::vector<::plop::PeriodicCC> mCcs;
+			::juce::TextEditor              mEditor;
 
 			int   mEditingIndex = -1;
 			Field mEditingField = Field::None;
 
-			int        mDragIndex   = -1;
-			Field      mDragField   = Field::None;
-			int        mDragStartY  = 0;
-			PeriodicCC mDragStartCc = {};
+			int                mDragIndex   = -1;
+			Field              mDragField   = Field::None;
+			int                mDragStartY  = 0;
+			::plop::PeriodicCC mDragStartCc = {};
 
 			::juce::Rectangle<int> numberRect( int i ) const {
 				return { PAD_MD, i * ROW_H, 55, ROW_H };
@@ -458,7 +458,7 @@ namespace plop::ui {
 			void commitEdit() {
 				if ( mEditingIndex < 0 || mEditingField == Field::None )
 					return;
-				PeriodicCC updated = mCcs[ mEditingIndex ];
+				::plop::PeriodicCC updated = mCcs[ mEditingIndex ];
 				if ( mEditingField == Field::Number )
 					updated.number = ::juce::jlimit( 0, 127, mEditor.getText().getIntValue() );
 				else if ( mEditingField == Field::Period )

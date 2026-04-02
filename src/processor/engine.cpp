@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cmath>
 
+using ::plop::NoteGroup;
+using ::plop::PeriodicCC;
 using ::plop::PluginMode;
 using ::plop::PluginState;
 

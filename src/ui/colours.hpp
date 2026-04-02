@@ -26,7 +26,8 @@ namespace plop::colours {
 	const auto removeBg        = ::juce::Colour( 0xff553333 ); // remove button bg
 	const auto replaceModeBg   = ::juce::Colour( 0xff221a1a ); // replace-mode toggle bg in pattern picker
 
-	const auto darkestGrey = ::juce::Colour( 0xff323232 );
+	const auto lightestGrey = ::juce::Colour( 0xffD9D9D9 );
+	const auto darkestGrey  = ::juce::Colour( 0xff323232 );
 
 	// ---- Headers & borders --------------------------------------------------
 	const auto noteHeaderBg = panelBg;                      // ::juce::Colour( 0xff555577 ); // note list panel header

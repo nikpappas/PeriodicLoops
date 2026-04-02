@@ -115,8 +115,8 @@ namespace plop::p_loops {
 		};
 
 		struct CCBuffer {
-			::std::array<PeriodicCC, MAX_NOTES> cc{};
-			int                                 count = 0;
+			::std::array<::plop::PeriodicCC, MAX_NOTES> cc{};
+			int                                         count = 0;
 		};
 
 		NoteBuffer         mNoteBuf[ 2 ];
@@ -125,9 +125,9 @@ namespace plop::p_loops {
 		CCBuffer           mCcBuf[ 2 ];
 		::std::atomic<int> mActiveCcBuf{ 0 };
 
-		::std::vector<PeriodicNote> mUiNotes;
-		::std::vector<PeriodicCC>   mUiCcs;
-		::std::vector<NoteGroup>    mGroups;
+		::std::vector<PeriodicNote>       mUiNotes;
+		::std::vector<::plop::PeriodicCC> mUiCcs;
+		::std::vector<::plop::NoteGroup>  mGroups;
 
 		template <typename Fn>
 		void swapNoteBuffer( Fn &&fn ) {

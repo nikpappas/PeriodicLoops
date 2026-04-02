@@ -26,15 +26,20 @@ namespace plop::ui {
 		}
 
 		void paint( ::juce::Graphics &g ) override {
-			constexpr float PAD = 5.0f;
+			constexpr float PAD = 2.0f;
 			const float diam = std::min( static_cast<float>( getWidth() ), static_cast<float>( getHeight() ) ) - 2.0f * PAD;
 			const float cx = static_cast<float>( getWidth() ) / 2.0f;
 			const float cy = static_cast<float>( getHeight() ) / 2.0f;
 			const float r  = diam / 2.0f;
 
 			if ( mIsEmpty ) {
+				::juce::Path ellipsePath;
+				ellipsePath.addEllipse( cx - r, cy - r, diam, diam );
+				::juce::Path dashed;
+				const float  dashLengths[] = { 3.0f, 4.0f };
+				::juce::PathStrokeType( 1.0f ).createDashedStroke( dashed, ellipsePath, dashLengths, 2 );
 				g.setColour( colours::subtleGrey.withAlpha( 0.6f ) );
-				g.drawEllipse( cx - r, cy - r, diam, diam, 1.0f );
+				g.fillPath( dashed );
 				return;
 			}
 
@@ -45,9 +50,9 @@ namespace plop::ui {
 				g.setColour( ::juce::Colours::white.withAlpha( 0.45f ) );
 				g.drawEllipse( cx - r - 2.5f, cy - r - 2.5f, diam + 5.0f, diam + 5.0f, 1.5f );
 			} else {
-				g.setColour( colours::inputBg );
+				g.setColour( colours::lightestGrey );
 				g.fillEllipse( cx - r, cy - r, diam, diam );
-				g.setColour( colours::offWhite.withAlpha( 0.35f ) );
+				g.setColour( colours::darkestGrey );
 				g.drawEllipse( cx - r, cy - r, diam, diam, 1.0f );
 			}
 

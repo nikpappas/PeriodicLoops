@@ -66,7 +66,7 @@ namespace plop::ui {
 			return ::juce::jmax( LANE_H, static_cast<int>( mCcs.size() ) * LANE_H );
 		}
 
-		void setCCs( const std::vector<PeriodicCC> &ccs ) {
+		void setCCs( const std::vector<::plop::PeriodicCC> &ccs ) {
 			mCcs = std::move( ccs );
 		}
 		void setCurrentBeat( float beat ) {
@@ -123,14 +123,10 @@ namespace plop::ui {
 					const bool  isCurrent = ( std::abs( dx - static_cast<float>( cursorX ) ) < spacing * 0.5f );
 					const float r         = isCurrent && !isDisabled ? 4.5f : 2.5f;
 
-					g.setColour( isCurrent && !isDisabled ? ::juce::Colours::white
-					                                      : colours::accentOrange.withAlpha( isDisabled ? 0.2f : 0.65f ) );
+					g.setColour( isCurrent && !isDisabled ? colours::accentOrange
+					                                      : colours::darkestGrey.withAlpha( isDisabled ? 0.2f : 0.65f ) );
 					g.fillEllipse( dx - r, dotY - r, r * 2.0f, r * 2.0f );
 				}
-
-				// Cursor line
-				g.setColour( ::juce::Colours::white.withAlpha( 0.15f ) );
-				g.drawVerticalLine( cursorX, static_cast<float>( y ), static_cast<float>( y + LANE_H ) );
 
 				// Label (drawn over the left edge of the wave)
 				g.setColour( colours::darkestGrey );
@@ -144,13 +140,13 @@ namespace plop::ui {
 				}
 
 				// Separator
-				g.setColour( colours::subtleGrey );
+				g.setColour( colours::subtleGrey.withAlpha( 0.3f ) );
 				g.drawHorizontalLine( y + LANE_H - 1, 0.0f, static_cast<float>( w ) );
 			}
 		}
 
 	 private:
-		std::vector<PeriodicCC> mCcs;
+		std::vector<::plop::PeriodicCC> mCcs;
 		float                   mCurrentBeat = 0.0f;
 
 		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR( CcDisplay )
