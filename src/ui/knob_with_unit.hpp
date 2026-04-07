@@ -20,6 +20,17 @@ namespace plop::ui {
 		KnobWithUnit( const ::juce::String &label, const std::function<void( float )> &onChange ) :
 				  mKnob( label, onChange ) {
 			addAndMakeVisible( mKnob );
+
+			mEditor.setJustification( ::juce::Justification::centred );
+			mEditor.setColour( ::juce::TextEditor::backgroundColourId, colours::inputBg );
+			mEditor.setColour( ::juce::TextEditor::textColourId, ::juce::Colours::white );
+			mEditor.setColour( ::juce::TextEditor::outlineColourId, colours::accentOrange );
+			mEditor.onReturnKey = [ this ] { commitEdit(); };
+			mEditor.onEscapeKey = [ this ] { cancelEdit(); };
+			mEditor.onFocusLost = [ this ] { commitEdit(); };
+			addChildComponent( mEditor );
+
+			mKnob.onDoubleClicked = [ this ] { showEditor(); };
 		}
 
 		void setLabel( const ::juce::String &label ) {
@@ -54,8 +65,13 @@ namespace plop::ui {
 			repaint();
 		}
 
+		void mouseDoubleClick( const ::juce::MouseEvent & ) override {
+			showEditor();
+		}
+
 		void resized() override {
 			mKnob.setBounds( LEFT_W, EDGE_H, getWidth() - LEFT_W, getHeight() - 2 * EDGE_H );
+			mEditor.setBounds( LEFT_W, getHeight() - EDGE_H, getWidth() - LEFT_W, EDGE_H );
 		}
 
 		void paint( ::juce::Graphics &g ) override {
@@ -96,6 +112,23 @@ namespace plop::ui {
 		static constexpr int LEFT_W = 40;
 		static constexpr int EDGE_H = static_cast<int>( FONT_SM ) + 6;
 
+		void showEditor() {
+			mEditor.setText( ::juce::String( mKnob.getValue(), 3 ), false );
+			mEditor.setVisible( true );
+			mEditor.grabKeyboardFocus();
+			mEditor.selectAll();
+		}
+		void commitEdit() {
+			const float v = mEditor.getText().getFloatValue();
+			cancelEdit();
+			mKnob.setValue( ::juce::jlimit( mKnob.getMin(), mKnob.getMax(), v ) );
+			if ( mKnob.getOnChange() )
+				mKnob.getOnChange()( mKnob.getValue() );
+		}
+		void cancelEdit() {
+			mEditor.setVisible( false );
+		}
+
 		static constexpr float DOT_R      = 4.0f;
 		static constexpr float DOT_OFFSET = 6.0f;
 
@@ -113,9 +146,10 @@ namespace plop::ui {
 			g.drawText( label, textX, y, LEFT_W - textX, h, ::juce::Justification::centredLeft );
 		}
 
-		Knob mKnob;
-		Unit mUnit   = Unit::Beats;
-		bool mActive = true;
+		Knob                   mKnob;
+		::juce::TextEditor     mEditor;
+		Unit                   mUnit   = Unit::Beats;
+		bool                   mActive = true;
 
 		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR( KnobWithUnit )
 	};

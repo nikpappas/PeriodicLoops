@@ -13,8 +13,11 @@ namespace plop::ui {
 
 	/// A minimal rotary knob — thin circle outline + single indicator line + label.
 	/// Drag up/down to change value. 0° = bottom-left (224°), full range = 270° clockwise sweep.
+	/// Double-click fires onDoubleClicked so a wrapper can open an inline editor.
 	class Knob : public ::juce::Component {
 	 public:
+		std::function<void()> onDoubleClicked;
+
 		Knob( const ::juce::String &label, const std::function<void( float )> onChange ) :
 				  mLabel( label ), mOnChange( std::move( onChange ) ) {
 			setMouseCursor( ::juce::MouseCursor::UpDownResizeCursor );
@@ -41,6 +44,10 @@ namespace plop::ui {
 		float getNormValue() const {
 			return ( mMax > mMin ) ? ( mValue - mMin ) / ( mMax - mMin ) : 0.0f;
 		}
+
+		float getMin() const { return mMin; }
+		float getMax() const { return mMax; }
+		const std::function<void( float )> &getOnChange() const { return mOnChange; }
 
 		void setRange( float min, float max ) {
 			mMin   = min;
@@ -103,6 +110,11 @@ namespace plop::ui {
 			if ( mOnChange )
 				mOnChange( mValue );
 			repaint();
+		}
+
+		void mouseDoubleClick( const ::juce::MouseEvent & ) override {
+			if ( mActive && onDoubleClicked )
+				onDoubleClicked();
 		}
 
 	 private:

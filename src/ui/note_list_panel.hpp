@@ -29,6 +29,7 @@ namespace plop::ui {
 			std::function<void( int )>                         onRemoveNote;
 			std::function<void()>                              onAddNote;
 			std::function<void( int, PeriodicNote )>           onNoteChanged;
+			std::function<void( int )>                         onNoteSelected;
 		};
 
 		explicit NoteListPanel( Callbacks cbs ) : mCbs( std::move( cbs ) ) {
@@ -47,6 +48,10 @@ namespace plop::ui {
 			mRows.onNoteChanged = [ this ]( int i, PeriodicNote n ) {
 				if ( mCbs.onNoteChanged )
 					mCbs.onNoteChanged( i, n );
+			};
+			mRows.onNoteSelected = [ this ]( int i ) {
+				if ( mCbs.onNoteSelected )
+					mCbs.onNoteSelected( i );
 			};
 		}
 
@@ -71,6 +76,10 @@ namespace plop::ui {
 
 		void setScaleConstraint( int root, int scaleTypeIndex ) {
 			mRows.setScaleConstraint( root, scaleTypeIndex );
+		}
+
+		void setSelectedIndex( int index ) {
+			mRows.setSelectedIndex( index );
 		}
 
 		void paint( ::juce::Graphics &g ) override {
@@ -135,6 +144,7 @@ namespace plop::ui {
 			std::function<void( int, ::juce::Rectangle<int> )> onColourSwatchClicked;
 			std::function<void( int )>                         onRemoveNote;
 			std::function<void( int, PeriodicNote )>           onNoteChanged;
+			std::function<void( int )>                         onNoteSelected;
 
 			RowsComponent() {
 				mEditor.setJustification( ::juce::Justification::centred );
@@ -177,12 +187,19 @@ namespace plop::ui {
 				return static_cast<int>( mNotes.size() ) * ROW_H;
 			}
 
+			void setSelectedIndex( int index ) {
+				mSelectedIndex = index;
+			}
+
 			void paint( ::juce::Graphics &g ) override {
 				g.setFont( FONT_LG );
 				for ( int i = 0; i < static_cast<int>( mNotes.size() ); ++i ) {
 					const auto &note = mNotes[ i ];
 					const int   y    = i * ROW_H;
-					if ( i % 2 == 0 ) {
+					if ( i == mSelectedIndex ) {
+						g.setColour( colours::darkestGrey );
+						g.fillRect( 0, y, getWidth(), ROW_H );
+					} else if ( i % 2 == 0 ) {
 						g.setColour( colours::rowAlt );
 						g.fillRect( 0, y, getWidth(), ROW_H );
 					}
@@ -194,12 +211,12 @@ namespace plop::ui {
 					g.setColour( colour.brighter( 0.3f ) );
 					g.drawRoundedRectangle( sb.toFloat(), swatchCornerRadius, 1.0f );
 
-					g.setColour( ::juce::Colours::white );
-					drawCell( g, pitchLabel( note.pitch ), pitchRect( i ) );
-					drawCell( g, ::juce::String( note.period, 2 ) + " b", periodRect( i ) );
-					drawCell( g, ::juce::String( note.offset, 2 ) + " b", offsetRect( i ) );
+					const auto textColour = ( i == mSelectedIndex ) ? colours::panelBg : colours::darkestGrey;
+					drawCell( g, pitchLabel( note.pitch ), pitchRect( i ), textColour );
+					drawCell( g, ::juce::String( note.period, 2 ) + " b", periodRect( i ), textColour );
+					drawCell( g, ::juce::String( note.offset, 2 ) + " b", offsetRect( i ), textColour );
 					if ( mShowChannel )
-						drawCell( g, ::juce::String( note.channel ), channelRect( i ) );
+						drawCell( g, ::juce::String( note.channel ), channelRect( i ), textColour );
 
 					const auto rb = removeRect( i );
 					g.setColour( colours::removeBg );
@@ -234,6 +251,8 @@ namespace plop::ui {
 						f = Field::Channel;
 
 					if ( f != Field::None ) {
+						if ( onNoteSelected )
+							onNoteSelected( i );
 						mDragIndex     = i;
 						mDragField     = f;
 						mDragStartY    = pos.y;
@@ -315,12 +334,13 @@ namespace plop::ui {
 			std::vector<PeriodicNote>   mNotes;
 			std::vector<::juce::Colour> mColours;
 			::juce::TextEditor          mEditor;
-			int                         mEditingIndex = -1;
-			Field                       mEditingField = Field::None;
-			bool                        mShowChannel  = false;
-			PluginMode                  mMode         = PluginMode::Melody;
-			int                         mScaleRoot    = 0;
-			int                         mScaleType    = 1; // Major
+			int                         mEditingIndex  = -1;
+			Field                       mEditingField  = Field::None;
+			bool                        mShowChannel   = false;
+			PluginMode                  mMode          = PluginMode::Melody;
+			int                         mScaleRoot     = 0;
+			int                         mScaleType     = 1; // Major
+			int                         mSelectedIndex = -1;
 
 			int          mDragIndex     = -1;
 			Field        mDragField     = Field::None;
@@ -361,8 +381,8 @@ namespace plop::ui {
 				return "(" + ::juce::String( pitch ) + ") " + midiPitchToName( pitch );
 			}
 
-			void drawCell( ::juce::Graphics &g, const ::juce::String &text, ::juce::Rectangle<int> bounds ) const {
-				g.setColour( plop::colours::darkestGrey );
+			void drawCell( ::juce::Graphics &g, const ::juce::String &text, ::juce::Rectangle<int> bounds, ::juce::Colour colour ) const {
+				g.setColour( colour );
 				g.drawText( text, bounds, ::juce::Justification::centredLeft );
 			}
 

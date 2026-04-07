@@ -11,6 +11,7 @@
 #include "music/scales.hpp"
 #include "processor/periodic_loops.hpp"
 #include "ui/cc_controls.hpp"
+#include "ui/note_controls.hpp"
 #include "ui/cc_display.hpp"
 #include "ui/circle_grid.hpp"
 #include "ui/colours.hpp"
@@ -34,8 +35,10 @@ namespace plop::ui {
 		::plop::p_loops::PLoops &mPluginInstanceRef;
 		OrbitalDisplay           mOrbitalDisplay;
 		NoteListPanel            mNoteListPanel;
+		NoteControls             mNoteControls;
 		GroupListPanel           mGroupListPanel;
 		CircleGrid               mCircleGrid;
+		CircleGrid               mGroupGrid;
 		CcControls               mCcControls;
 		CcDisplay                mCcDisplay;
 		MidiExportButton         mMidiExportButton;
@@ -50,8 +53,9 @@ namespace plop::ui {
 
 		std::vector<::juce::Colour>                            mNoteColours;
 		::juce::Component::SafePointer<::juce::ColourSelector> mActiveSelector;
-		int                                                    mEditingIndex    = -1;
-		int                                                    mSelectedCcIndex = -1;
+		int                                                    mEditingIndex      = -1;
+		int                                                    mSelectedCcIndex   = -1;
+		int                                                    mSelectedNoteIndex = -1;
 
 		// Groups (owned by UI, flattened to engine on change)
 		::std::vector<NoteGroup> mGroups;
@@ -183,17 +187,26 @@ namespace plop::ui {
 			const int rightY    = top_h;
 			mSettingsPanel.setBounds( 0, rightY, panelW, settingsH );
 
-			const int panelH = h - rightY - settingsH;
+			constexpr int CIRCLE_GRID_H    = 120;
+			constexpr int CC_CONTROLS_H    = 300;
+			constexpr int NOTE_CONTROLS_H  = 200;
 
+			const int groupGridH    = isGroupMode() ? CIRCLE_GRID_H : 0;
+			const int noteControlsH = isGroupMode() ? 0 : NOTE_CONTROLS_H;
+			const int panelH        = h - rightY - settingsH - groupGridH - noteControlsH;
+
+			mGroupGrid.setVisible( isGroupMode() );
+			mGroupGrid.setBounds( 0, rightY + settingsH, panelW, groupGridH );
+			mNoteControls.setVisible( !isGroupMode() );
 			if ( isGroupMode() ) {
-				mGroupListPanel.setBounds( 0, rightY + settingsH, panelW, panelH );
+				mGroupListPanel.setBounds( 0, rightY + settingsH + groupGridH, panelW, panelH );
+				mNoteControls.setBounds( 0, 0, 0, 0 );
 			} else {
 				mNoteListPanel.setBounds( 0, rightY + settingsH, panelW, panelH );
+				mNoteControls.setBounds( 0, rightY + settingsH + panelH, panelW, NOTE_CONTROLS_H );
 			}
-			constexpr int CIRCLE_GRID_H = 120;
-			constexpr int CC_CONTROLS_H = 300;
 			mCircleGrid.setBounds( w - panelW, rightY, panelW, CIRCLE_GRID_H );
-			mCcControls.setBounds( w - panelW, rightY + panelH - CC_CONTROLS_H, panelW, CC_CONTROLS_H );
+			mCcControls.setBounds( w - panelW, rightY + panelH + groupGridH - CC_CONTROLS_H, panelW, CC_CONTROLS_H );
 		}
 
 		void timerCallback() override {
@@ -248,9 +261,23 @@ namespace plop::ui {
 			mOrbitalDisplay.repaint();
 
 			if ( !isGroupMode() ) {
+				const int noteCount = static_cast<int>( notes.size() );
+				if ( mSelectedNoteIndex >= noteCount )
+					mSelectedNoteIndex = -1;
 				mNoteListPanel.setNotes( { notes.begin(), notes.end() } );
 				mNoteListPanel.setColours( mNoteColours );
+				mNoteListPanel.setSelectedIndex( mSelectedNoteIndex );
 				mNoteListPanel.repaint();
+
+				mNoteControls.setHasSelection( mSelectedNoteIndex >= 0 );
+				if ( mSelectedNoteIndex >= 0 ) {
+					const auto &sel = notes[ static_cast<size_t>( mSelectedNoteIndex ) ];
+					mNoteControls.setKnobValue( 0, static_cast<float>( sel.pitch ) );
+					mNoteControls.setKnobValue( 1, sel.period );
+					mNoteControls.setKnobValue( 2, sel.offset );
+					mNoteControls.setKnobValue( 3, sel.duration );
+					mNoteControls.setKnobValue( 4, static_cast<float>( sel.channel ) );
+				}
 			} else {
 				// Groups are already pushed; just repaint
 				mGroupListPanel.repaint();
@@ -295,6 +322,21 @@ namespace plop::ui {
 			}
 			mCircleGrid.repaint();
 
+			// Group circles (visible in group mode only)
+			if ( isGroupMode() ) {
+				const int groupCount = static_cast<int>( mGroups.size() );
+				for ( int i = 0; i < CircleGrid::N; ++i ) {
+					if ( i < groupCount ) {
+						const auto &g = mGroups[ static_cast<size_t>( i ) ];
+						mGroupGrid.setButton( i, ::juce::String( i + 1 ), g.expanded, false, [ this, i ] {
+							mGroupListPanel.expandGroup( i );
+						} );
+					} else {
+						mGroupGrid.setButton( i, "", false, true, {} );
+					}
+				}
+			}
+
 			// Keep CcControls in sync with selected CC
 			mCcControls.setHasSelection( mSelectedCcIndex >= 0 );
 			if ( mSelectedCcIndex >= 0 ) {
@@ -330,6 +372,77 @@ namespace plop::ui {
 						mNoteColours.push_back( nextPaletteColour() );
 					},
 				 .onNoteChanged = [ this ]( int i, PeriodicNote n ) { mPluginInstanceRef.updateNote( i, n ); },
+				 .onNoteSelected =
+					[ this ]( int i ) {
+						mSelectedNoteIndex = i;
+						const auto &notes  = mPluginInstanceRef.getNotes();
+						if ( i < static_cast<int>( notes.size() ) ) {
+							const auto &n = notes[ static_cast<size_t>( i ) ];
+							mNoteControls.setKnobValue( 0, static_cast<float>( n.pitch ) );
+							mNoteControls.setKnobValue( 1, n.period );
+							mNoteControls.setKnobValue( 2, n.offset );
+							mNoteControls.setKnobValue( 3, n.duration );
+							mNoteControls.setKnobValue( 4, static_cast<float>( n.channel ) );
+						}
+					},
+			  } ),
+			  mNoteControls( NoteControls::Cbs{
+				 .onPitchChanged =
+					[ this ]( float v ) {
+						if ( mSelectedNoteIndex < 0 )
+							return;
+						const auto &notes = mPluginInstanceRef.getNotes();
+						if ( mSelectedNoteIndex >= static_cast<int>( notes.size() ) )
+							return;
+						auto updated  = notes[ static_cast<size_t>( mSelectedNoteIndex ) ];
+						updated.pitch = static_cast<int>( v );
+						mPluginInstanceRef.updateNote( mSelectedNoteIndex, updated );
+					},
+				 .onPeriodChanged =
+					[ this ]( float v ) {
+						if ( mSelectedNoteIndex < 0 )
+							return;
+						const auto &notes = mPluginInstanceRef.getNotes();
+						if ( mSelectedNoteIndex >= static_cast<int>( notes.size() ) )
+							return;
+						auto updated   = notes[ static_cast<size_t>( mSelectedNoteIndex ) ];
+						updated.period = v;
+						updated.offset = std::min( updated.offset, v );
+						mPluginInstanceRef.updateNote( mSelectedNoteIndex, updated );
+					},
+				 .onOffsetChanged =
+					[ this ]( float v ) {
+						if ( mSelectedNoteIndex < 0 )
+							return;
+						const auto &notes = mPluginInstanceRef.getNotes();
+						if ( mSelectedNoteIndex >= static_cast<int>( notes.size() ) )
+							return;
+						auto updated   = notes[ static_cast<size_t>( mSelectedNoteIndex ) ];
+						updated.offset = std::min( v, updated.period );
+						mPluginInstanceRef.updateNote( mSelectedNoteIndex, updated );
+					},
+				 .onDurationChanged =
+					[ this ]( float v ) {
+						if ( mSelectedNoteIndex < 0 )
+							return;
+						const auto &notes = mPluginInstanceRef.getNotes();
+						if ( mSelectedNoteIndex >= static_cast<int>( notes.size() ) )
+							return;
+						auto updated     = notes[ static_cast<size_t>( mSelectedNoteIndex ) ];
+						updated.duration = v;
+						mPluginInstanceRef.updateNote( mSelectedNoteIndex, updated );
+					},
+				 .onChannelChanged =
+					[ this ]( float v ) {
+						if ( mSelectedNoteIndex < 0 )
+							return;
+						const auto &notes = mPluginInstanceRef.getNotes();
+						if ( mSelectedNoteIndex >= static_cast<int>( notes.size() ) )
+							return;
+						auto updated     = notes[ static_cast<size_t>( mSelectedNoteIndex ) ];
+						updated.channel  = static_cast<int>( v );
+						mPluginInstanceRef.updateNote( mSelectedNoteIndex, updated );
+					},
 			  } ),
 			  mGroupListPanel( {
 				 .onGroupsChanged = [ this ]( const ::std::vector<NoteGroup> &groups ) { onGroupsChanged( groups ); },
@@ -469,8 +582,10 @@ namespace plop::ui {
 		addAndMakeVisible( mCcDisplay );
 		mNoteListPanel.setShowChannel( mIsStandalone );
 		addAndMakeVisible( mNoteListPanel );
+		addAndMakeVisible( mNoteControls );
 		addAndMakeVisible( mGroupListPanel );
 		addAndMakeVisible( mCircleGrid );
+		addAndMakeVisible( mGroupGrid );
 		addAndMakeVisible( mCcControls );
 		addAndMakeVisible( mMidiExportButton );
 		addAndMakeVisible( mPatternPicker );
@@ -498,6 +613,17 @@ namespace plop::ui {
 			updated.solo = soloed;
 			mPluginInstanceRef.updateCc( mSelectedCcIndex, updated );
 		} );
+		mNoteControls.setStandalone( mIsStandalone );
+		mNoteControls.setOnDelete( [ this ] {
+			if ( mSelectedNoteIndex < 0 )
+				return;
+			const int idx      = mSelectedNoteIndex;
+			mSelectedNoteIndex = -1;
+			mPluginInstanceRef.removeNote( idx );
+			if ( idx < static_cast<int>( mNoteColours.size() ) )
+				mNoteColours.erase( mNoteColours.begin() + idx );
+		} );
+
 		mCcControls.setStandalone( mIsStandalone );
 		mCcControls.setOnDelete( [ this ] {
 			if ( mSelectedCcIndex < 0 )

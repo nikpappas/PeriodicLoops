@@ -52,6 +52,10 @@ namespace plop::ui {
          return mGroups;
       }
 
+      void expandGroup( int index ) {
+         toggleExpand( index );
+      }
+
       void paint( ::juce::Graphics &g ) override {
          g.fillAll( colours::panelBg );
 

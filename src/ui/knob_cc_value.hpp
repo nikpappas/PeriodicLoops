@@ -19,6 +19,18 @@ namespace plop::ui {
 				  mKnob( label, std::move( onChange ) ) {
 			mKnob.setRange( 0.0f, 127.0f );
 			addAndMakeVisible( mKnob );
+
+			mEditor.setJustification( ::juce::Justification::centred );
+			mEditor.setInputRestrictions( 3, "0123456789" );
+			mEditor.setColour( ::juce::TextEditor::backgroundColourId, colours::inputBg );
+			mEditor.setColour( ::juce::TextEditor::textColourId, ::juce::Colours::white );
+			mEditor.setColour( ::juce::TextEditor::outlineColourId, colours::accentOrange );
+			mEditor.onReturnKey = [ this ] { commitEdit(); };
+			mEditor.onEscapeKey = [ this ] { cancelEdit(); };
+			mEditor.onFocusLost = [ this ] { commitEdit(); };
+			addChildComponent( mEditor );
+
+			mKnob.onDoubleClicked = [ this ] { showEditor(); };
 		}
 
 		void setLabel( const ::juce::String &label ) {
@@ -47,8 +59,13 @@ namespace plop::ui {
 			return mKnob.isActive();
 		}
 
+		void mouseDoubleClick( const ::juce::MouseEvent & ) override {
+			showEditor();
+		}
+
 		void resized() override {
 			mKnob.setBounds( 0, 0, getWidth(), getHeight() - VALUE_H );
+			mEditor.setBounds( 0, getHeight() - VALUE_H, getWidth(), VALUE_H );
 		}
 
 		void paint( ::juce::Graphics &g ) override {
@@ -67,6 +84,23 @@ namespace plop::ui {
 
 	 private:
 		static constexpr int VALUE_H = static_cast<int>( FONT_SM ) + 6;
+
+		void showEditor() {
+			mEditor.setText( ::juce::String( static_cast<int>( mKnob.getValue() ) ), false );
+			mEditor.setVisible( true );
+			mEditor.grabKeyboardFocus();
+			mEditor.selectAll();
+		}
+		void commitEdit() {
+			const float v = ::juce::jlimit( 0.0f, 127.0f, static_cast<float>( mEditor.getText().getIntValue() ) );
+			cancelEdit();
+			mKnob.setValue( v );
+			if ( mKnob.getOnChange() )
+				mKnob.getOnChange()( mKnob.getValue() );
+		}
+		void cancelEdit() {
+			mEditor.setVisible( false );
+		}
 
 		static ::juce::String ccName( int cc ) {
 			// clang-format off
@@ -156,7 +190,8 @@ namespace plop::ui {
 			return NAMES[ cc ];
 		}
 
-		Knob mKnob;
+		Knob               mKnob;
+		::juce::TextEditor mEditor;
 
 		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR( KnobCcValue )
 	};
