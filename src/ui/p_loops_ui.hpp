@@ -260,6 +260,7 @@ namespace plop::ui {
 			const int   ccCount = static_cast<int>( ccs.size() );
 			mCcDisplay.setCurrentBeat( currentBeat );
 			mCcDisplay.setCCs( { ccs.begin(), ccs.end() } );
+			mCcDisplay.setSelectedIndex( mSelectedCcIndex );
 			mCcDisplay.repaint();
 			if ( ccCount != mLastCcCount ) {
 				mLastCcCount = ccCount;
@@ -379,6 +380,17 @@ namespace plop::ui {
 															 updated.number = static_cast<int>( v );
 															 mPluginInstanceRef.updateCc( mSelectedCcIndex, updated );
 														 } } ),
+			  mCcDisplay( [ this ]( int lane ) {
+				  mSelectedCcIndex   = lane;
+				  const auto &allCcs = mPluginInstanceRef.getCCs();
+				  if ( lane < static_cast<int>( allCcs.size() ) ) {
+					  const auto &sel = allCcs[ static_cast<size_t>( lane ) ];
+					  mCcControls.setKnobValue( 0, sel.period );
+					  mCcControls.setKnobValue( 1, static_cast<float>( sel.number ) );
+					  mCcControls.setKnobValue( 2, sel.offset );
+					  mCcControls.setShape( sel.shape );
+				  }
+			  } ),
 			  mMidiExportButton( [ this ] {
 				  return generateMidiExport(
 					 mPluginInstanceRef.getNotes(), mPluginInstanceRef.getCCs(), mPluginInstanceRef.getBpm() );

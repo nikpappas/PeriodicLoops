@@ -2,6 +2,7 @@
 #define PLOP_SRC_UI_CC_DISPLAY_HPP
 
 #include <cmath>
+#include <functional>
 #include <vector>
 
 #include <juce_gui_basics/juce_gui_basics.h>
@@ -60,7 +61,8 @@ namespace plop::ui {
 		static constexpr int LANE_H  = 42;
 		static constexpr int LABEL_W = 62;
 
-		CcDisplay() {
+		explicit CcDisplay( std::function<void( int )> onLaneClicked = {} ) :
+				  mOnLaneClicked( std::move( onLaneClicked ) ) {
 		}
 		int getPreferredHeight() const {
 			return ::juce::jmax( LANE_H, static_cast<int>( mCcs.size() ) * LANE_H );
@@ -71,6 +73,15 @@ namespace plop::ui {
 		}
 		void setCurrentBeat( float beat ) {
 			mCurrentBeat = beat;
+		}
+		void setSelectedIndex( int index ) {
+			mSelectedIndex = index;
+		}
+
+		void mouseDown( const ::juce::MouseEvent &e ) override {
+			const int lane = e.y / LANE_H;
+			if ( lane >= 0 && lane < static_cast<int>( mCcs.size() ) && mOnLaneClicked )
+				mOnLaneClicked( lane );
 		}
 
 		void paint( ::juce::Graphics &g ) override {
@@ -99,10 +110,15 @@ namespace plop::ui {
 			for ( int i = 0; i < static_cast<int>( mCcs.size() ); ++i ) {
 				const auto &cc         = mCcs[ i ];
 				const auto  isDisabled = isAnySolo && !cc.solo;
+				const bool  isSelected = ( i == mSelectedIndex );
 				const int   y          = i * LANE_H;
 
-				// Lane background
-				g.setColour( i % 2 == 0 ? colours::panelBg : colours::lcdBgColour );
+				// Lane background — invert for selected lane
+				if ( isSelected ) {
+					g.setColour( colours::darkestGrey );
+				} else {
+					g.setColour( i % 2 == 0 ? colours::panelBg : colours::lcdBgColour );
+				}
 				g.fillRect( 0, y, w, LANE_H );
 
 				if ( cc.period <= 0.0f )
@@ -123,13 +139,18 @@ namespace plop::ui {
 					const bool  isCurrent = ( std::abs( dx - static_cast<float>( cursorX ) ) < spacing * 0.5f );
 					const float r         = isCurrent && !isDisabled ? 4.5f : 2.5f;
 
-					g.setColour( isCurrent && !isDisabled ? colours::accentOrange
-					                                      : colours::darkestGrey.withAlpha( isDisabled ? 0.2f : 0.65f ) );
+					if ( isCurrent && !isDisabled ) {
+						g.setColour( colours::accentOrange );
+					} else if ( isSelected ) {
+						g.setColour( colours::panelBg.withAlpha( isDisabled ? 0.2f : 0.65f ) );
+					} else {
+						g.setColour( colours::darkestGrey.withAlpha( isDisabled ? 0.2f : 0.65f ) );
+					}
 					g.fillEllipse( dx - r, dotY - r, r * 2.0f, r * 2.0f );
 				}
 
 				// Label (drawn over the left edge of the wave)
-				g.setColour( colours::darkestGrey );
+				g.setColour( isSelected ? colours::panelBg : colours::darkestGrey );
 				g.setFont( FONT_SM );
 				g.drawText( ccDisplayName( cc.number ), PAD_SM, y + ( LANE_H - 14 ) / 2, LABEL_W, 14, ::juce::Justification::centredLeft );
 
@@ -147,7 +168,9 @@ namespace plop::ui {
 
 	 private:
 		std::vector<::plop::PeriodicCC> mCcs;
-		float                   mCurrentBeat = 0.0f;
+		float                           mCurrentBeat   = 0.0f;
+		int                             mSelectedIndex = -1;
+		std::function<void( int )>      mOnLaneClicked;
 
 		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR( CcDisplay )
 	};

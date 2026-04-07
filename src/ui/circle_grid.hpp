@@ -44,7 +44,7 @@ namespace plop::ui {
 			}
 
 			if ( mIsSelected ) {
-				g.setColour( colours::accentOrange.withAlpha( 0.9f ) );
+				g.setColour( colours::darkestGrey );
 				g.fillEllipse( cx - r, cy - r, diam, diam );
 				// Outer ring
 				g.setColour( ::juce::Colours::white.withAlpha( 0.45f ) );
