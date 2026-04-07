@@ -15,7 +15,10 @@ namespace plop::ui {
 
 	class KnobValueLabel : public ::juce::Component {
 	 public:
-		KnobValueLabel( const ::juce::String &label, std::function<void( float )> onChange ) : mKnob( label, onChange ) {
+		KnobValueLabel( const ::juce::String                          &label,
+		                std::function<void( float )>                   onChange,
+		                std::function<::juce::String( const float & )> labelProvider ) :
+				  mKnob( label, onChange ), mLabelProvider( labelProvider ) {
 			addAndMakeVisible( mKnob );
 		}
 
@@ -52,8 +55,7 @@ namespace plop::ui {
 				// --- Label ---
 				g.setColour( ::juce::Colours::black );
 				g.setFont( ::juce::Font( FONT_SM ) );
-
-				g.drawText( ::juce::String( mKnob.getValue() + 1, 0 ),
+				g.drawText( ::juce::String( mLabelProvider( mKnob.getValue() ) ),
 				            LEFT_W,
 				            getHeight() - EDGE_H,
 				            getWidth() - LEFT_W,
@@ -66,7 +68,8 @@ namespace plop::ui {
 		static constexpr int LEFT_W = 40;
 		static constexpr int EDGE_H = static_cast<int>( FONT_SM ) + 6;
 
-		Knob mKnob;
+		Knob                                           mKnob;
+		std::function<::juce::String( const float & )> mLabelProvider;
 
 		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR( KnobValueLabel )
 	};

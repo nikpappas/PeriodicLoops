@@ -59,7 +59,6 @@ namespace plop::ui {
 		}
 
 		void paint( ::juce::Graphics &g ) override {
-			g.fillAll( colours::accentBlue );
 			const float labelH = mLabel.isEmpty() ? 0.0f : FONT_SM + 6.0f;
 
 			g.setColour( ::juce::Colours::black );

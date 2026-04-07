@@ -22,7 +22,6 @@ using ::plop::PeriodicCC;
 
 using ::std::initializer_list;
 using ::std::string;
-using ::std::to_string;
 
 using namespace ::plop::p_loops;
 
@@ -107,8 +106,8 @@ void PLoops::processBlock( AudioBuffer<double> &, MidiBuffer & ) {
 void PLoops::getStateInformation( MemoryBlock &destData ) {
 	const auto xml = mEngine.captureState().toXml();
 	copyXmlToBinary( xml, destData );
-	pl_debug( "getStateInformation: saved " + to_string( mEngine.getNotes().size() ) + " notes, "
-	          + to_string( mEngine.getCCs().size() ) + " CCs" );
+	pl_debug( "getStateInformation: saved " + ::std::to_string( mEngine.getNotes().size() ) + " notes, "
+	          + ::std::to_string( mEngine.getCCs().size() ) + " CCs" );
 }
 
 void PLoops::setStateInformation( const void *data, int sizeInBytes ) {
@@ -123,8 +122,8 @@ void PLoops::setStateInformation( const void *data, int sizeInBytes ) {
 		return;
 	}
 	mEngine.applyState( *state );
-	pl_debug( "setStateInformation: loaded " + to_string( mEngine.getNotes().size() ) + " notes, "
-	          + to_string( mEngine.getCCs().size() ) + " CCs" );
+	pl_debug( "setStateInformation: loaded " + ::std::to_string( mEngine.getNotes().size() ) + " notes, "
+	          + ::std::to_string( mEngine.getCCs().size() ) + " CCs" );
 }
 
 File PLoops::logFile() {

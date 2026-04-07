@@ -12,7 +12,6 @@
 #include "processor/periodic_loops.hpp"
 #include "ui/cc_controls.hpp"
 #include "ui/cc_display.hpp"
-#include "ui/cc_list_panel.hpp"
 #include "ui/circle_grid.hpp"
 #include "ui/colours.hpp"
 #include "ui/group_list_panel.hpp"
@@ -36,7 +35,6 @@ namespace plop::ui {
 		OrbitalDisplay           mOrbitalDisplay;
 		NoteListPanel            mNoteListPanel;
 		GroupListPanel           mGroupListPanel;
-		CcListPanel              mCcListPanel;
 		CircleGrid               mCircleGrid;
 		CcControls               mCcControls;
 		CcDisplay                mCcDisplay;
@@ -193,9 +191,8 @@ namespace plop::ui {
 				mNoteListPanel.setBounds( 0, rightY + settingsH, panelW, panelH );
 			}
 			constexpr int CIRCLE_GRID_H = 120;
-			constexpr int CC_CONTROLS_H = 160;
+			constexpr int CC_CONTROLS_H = 300;
 			mCircleGrid.setBounds( w - panelW, rightY, panelW, CIRCLE_GRID_H );
-			mCcListPanel.setBounds( w - panelW, rightY + CIRCLE_GRID_H, panelW, panelH - CIRCLE_GRID_H - CC_CONTROLS_H );
 			mCcControls.setBounds( w - panelW, rightY + panelH - CC_CONTROLS_H, panelW, CC_CONTROLS_H );
 		}
 
@@ -261,8 +258,6 @@ namespace plop::ui {
 
 			const auto &ccs     = mPluginInstanceRef.getCCs();
 			const int   ccCount = static_cast<int>( ccs.size() );
-			mCcListPanel.setCCs( { ccs.begin(), ccs.end() } );
-			mCcListPanel.repaint();
 			mCcDisplay.setCurrentBeat( currentBeat );
 			mCcDisplay.setCCs( { ccs.begin(), ccs.end() } );
 			mCcDisplay.repaint();
@@ -338,20 +333,57 @@ namespace plop::ui {
 			  mGroupListPanel( {
 				 .onGroupsChanged = [ this ]( const ::std::vector<NoteGroup> &groups ) { onGroupsChanged( groups ); },
 			  } ),
-			  mCcListPanel( {
-									.onRemoveCc = [ this ]( int i ) { mPluginInstanceRef.removeCc( i ); },
-									.onAddCc =
-									  [ this ] {
-										  constexpr PeriodicCC defaultCc{ .number = 1, .period = 1.0f, .offset = 0.0f, .channel = 0 };
-										  mPluginInstanceRef.addCc( defaultCc );
-									  },
-									.onCcChanged = [ this ]( int i, PeriodicCC cc ) { mPluginInstanceRef.updateCc( i, cc ); },
-								 },
-	                      [ this ] { resized(); } ),
+
+			  mCcControls( CcControls::Cbs{ .onChannelChanged =
+	                                        [ this ]( int channel ) {
+															 if ( mSelectedCcIndex < 0 )
+																 return;
+															 const auto &ccs = mPluginInstanceRef.getCCs();
+															 if ( mSelectedCcIndex >= static_cast<int>( ccs.size() ) )
+																 return;
+															 auto updated    = ccs[ static_cast<size_t>( mSelectedCcIndex ) ];
+															 updated.channel = channel;
+															 mPluginInstanceRef.updateCc( mSelectedCcIndex, updated );
+														 },
+	                                      .onOffsetChanged =
+	                                        [ this ]( float v ) {
+															 if ( mSelectedCcIndex < 0 )
+																 return;
+															 const auto &ccs = mPluginInstanceRef.getCCs();
+															 if ( mSelectedCcIndex >= static_cast<int>( ccs.size() ) )
+																 return;
+															 auto updated   = ccs[ static_cast<size_t>( mSelectedCcIndex ) ];
+															 updated.offset = std::min( v, updated.period );
+															 mPluginInstanceRef.updateCc( mSelectedCcIndex, updated );
+														 },
+	                                      .onPeriodChanged =
+	                                        [ this ]( float v ) {
+															 if ( mSelectedCcIndex < 0 )
+																 return;
+															 const auto &ccs = mPluginInstanceRef.getCCs();
+															 if ( mSelectedCcIndex >= static_cast<int>( ccs.size() ) )
+																 return;
+															 auto updated   = ccs[ static_cast<size_t>( mSelectedCcIndex ) ];
+															 updated.period = v;
+															 updated.offset = std::min( v, updated.offset );
+															 mPluginInstanceRef.updateCc( mSelectedCcIndex, updated );
+														 },
+	                                      .onCcChanged =
+	                                        [ this ]( float v ) {
+															 if ( mSelectedCcIndex < 0 )
+																 return;
+															 const auto &ccs = mPluginInstanceRef.getCCs();
+															 if ( mSelectedCcIndex >= static_cast<int>( ccs.size() ) )
+																 return;
+															 auto updated   = ccs[ static_cast<size_t>( mSelectedCcIndex ) ];
+															 updated.number = static_cast<int>( v );
+															 mPluginInstanceRef.updateCc( mSelectedCcIndex, updated );
+														 } } ),
 			  mMidiExportButton( [ this ] {
 				  return generateMidiExport(
 					 mPluginInstanceRef.getNotes(), mPluginInstanceRef.getCCs(), mPluginInstanceRef.getBpm() );
 			  } ),
+
 			  mPatternPicker( [ this ]( const std::vector<PeriodicNote> &notes, bool add ) {
 				  if ( !add ) {
 					  const int n = static_cast<int>( mPluginInstanceRef.getNotes().size() );
@@ -364,6 +396,7 @@ namespace plop::ui {
 					  mNoteColours.push_back( nextPaletteColour() );
 				  }
 			  } ),
+
 			  mSettingsPanel( {
 				 .onModeChanged         = [ this ]( PluginMode mode ) { applyMode( mode ); },
 				 .onSilicaPeriodChanged = [ this ]( float period ) { mPluginInstanceRef.setSilicaPeriod( period ); },
@@ -380,17 +413,7 @@ namespace plop::ui {
 						}
 					},
 			  } ),
-			  mCcControls( CcControls::Cbs{ .onChannelChanged =
-	                                        [ this ]( int channel ) {
-															 if ( mSelectedCcIndex < 0 )
-																 return;
-															 const auto &ccs = mPluginInstanceRef.getCCs();
-															 if ( mSelectedCcIndex >= static_cast<int>( ccs.size() ) )
-																 return;
-															 auto updated    = ccs[ static_cast<size_t>( mSelectedCcIndex ) ];
-															 updated.channel = channel;
-															 mPluginInstanceRef.updateCc( mSelectedCcIndex, updated );
-														 } } ),
+
 			  mIsStandalone( owner.wrapperType == ::juce::AudioProcessor::wrapperType_Standalone ) {
 		for ( size_t i = 0; i < owner.getNotes().size(); ++i )
 			mNoteColours.push_back( nextPaletteColour() );
@@ -436,7 +459,6 @@ namespace plop::ui {
 		addAndMakeVisible( mNoteListPanel );
 		addAndMakeVisible( mGroupListPanel );
 		addAndMakeVisible( mCircleGrid );
-		addAndMakeVisible( mCcListPanel );
 		addAndMakeVisible( mCcControls );
 		addAndMakeVisible( mMidiExportButton );
 		addAndMakeVisible( mPatternPicker );
@@ -480,39 +502,6 @@ namespace plop::ui {
 				return;
 			auto updated  = ccs[ static_cast<size_t>( mSelectedCcIndex ) ];
 			updated.shape = shape;
-			mPluginInstanceRef.updateCc( mSelectedCcIndex, updated );
-		} );
-
-		mCcControls.configureKnob( 0, "PERIOD", 0.1f, 32.0f, [ this ]( float v ) {
-			if ( mSelectedCcIndex < 0 )
-				return;
-			const auto &ccs = mPluginInstanceRef.getCCs();
-			if ( mSelectedCcIndex >= static_cast<int>( ccs.size() ) )
-				return;
-			auto updated   = ccs[ static_cast<size_t>( mSelectedCcIndex ) ];
-			updated.period = v;
-			mPluginInstanceRef.updateCc( mSelectedCcIndex, updated );
-		} );
-
-		mCcControls.configureKnob( 1, "MIDI", 0.0f, 127.0f, [ this ]( float v ) {
-			if ( mSelectedCcIndex < 0 )
-				return;
-			const auto &ccs = mPluginInstanceRef.getCCs();
-			if ( mSelectedCcIndex >= static_cast<int>( ccs.size() ) )
-				return;
-			auto updated   = ccs[ static_cast<size_t>( mSelectedCcIndex ) ];
-			updated.number = static_cast<int>( v );
-			mPluginInstanceRef.updateCc( mSelectedCcIndex, updated );
-		} );
-
-		mCcControls.configureKnob( 2, "OFFSET", 0.0f, 32.0f, [ this ]( float v ) {
-			if ( mSelectedCcIndex < 0 )
-				return;
-			const auto &ccs = mPluginInstanceRef.getCCs();
-			if ( mSelectedCcIndex >= static_cast<int>( ccs.size() ) )
-				return;
-			auto updated   = ccs[ static_cast<size_t>( mSelectedCcIndex ) ];
-			updated.offset = v;
 			mPluginInstanceRef.updateCc( mSelectedCcIndex, updated );
 		} );
 

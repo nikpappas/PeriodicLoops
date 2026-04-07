@@ -6,6 +6,8 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+#include "utils/unreachable.hpp"
+
 struct PeriodicNote {
 	/// @brief  [0,127]
 	int pitch;
@@ -22,7 +24,21 @@ struct PeriodicNote {
 namespace plop {
 	enum class PluginMode { Pro, Melody, Drums, Silica };
 	enum class WaveShape { Sin, Tri, Saw };
+	namespace utils {
+		inline constexpr ::std::string to_string( const WaveShape &shape ) {
+			using enum WaveShape;
+			switch ( shape ) {
+				case Sin:
+					return "sin";
+				case Tri:
+					return "tri";
+				case Saw:
+					return "saw";
+			}
 
+			unreachable();
+		}
+	}
 	/// Returns a normalised [0,1] wave value for the given shape and continuous phase.
 	inline float evalWaveShape( WaveShape shape, float phase ) {
 		switch ( shape ) {
