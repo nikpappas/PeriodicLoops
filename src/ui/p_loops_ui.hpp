@@ -11,12 +11,12 @@
 #include "music/scales.hpp"
 #include "processor/periodic_loops.hpp"
 #include "ui/cc_controls.hpp"
-#include "ui/note_controls.hpp"
 #include "ui/cc_display.hpp"
 #include "ui/circle_grid.hpp"
 #include "ui/colours.hpp"
 #include "ui/group_list_panel.hpp"
 #include "ui/midi_export_button.hpp"
+#include "ui/note_controls.hpp"
 #include "ui/note_list_panel.hpp"
 #include "ui/orbital_display.hpp"
 #include "ui/pattern_picker.hpp"
@@ -163,6 +163,12 @@ namespace plop::ui {
 			constexpr int btn_h  = 30;
 			const int     w      = getWidth();
 			const int     h      = getHeight();
+			auto          bounds = getLocalBounds();
+			//auto          boundsTopPanel   =
+			bounds.removeFromTop( top_h );
+			auto boundsRightPanel = bounds.removeFromRight( panelW );
+
+			// auto boundsLeftPanel  = bounds.removeFromLeft( panelW );
 
 			// ---- Top bar ----
 			mMidiExportButton.setBounds( w - 90, btn_y, 80, btn_h );
@@ -179,6 +185,7 @@ namespace plop::ui {
 			// ---- Left side: orbital + cc display ----
 			const int ccDisplayH = mCcDisplay.getPreferredHeight();
 			const int orbitalH   = ::juce::jmax( 0, h - top_h - ccDisplayH );
+
 			mOrbitalDisplay.setBounds( panelW, top_h, w - 2 * panelW, orbitalH );
 			mCcDisplay.setBounds( panelW, top_h + orbitalH, w - 2 * panelW, ccDisplayH );
 
@@ -187,9 +194,9 @@ namespace plop::ui {
 			const int rightY    = top_h;
 			mSettingsPanel.setBounds( 0, rightY, panelW, settingsH );
 
-			constexpr int CIRCLE_GRID_H    = 120;
-			constexpr int CC_CONTROLS_H    = 300;
-			constexpr int NOTE_CONTROLS_H  = 200;
+			constexpr int CIRCLE_GRID_H   = 120;
+			constexpr int CC_CONTROLS_H   = 300;
+			constexpr int NOTE_CONTROLS_H = 200;
 
 			const int groupGridH    = isGroupMode() ? CIRCLE_GRID_H : 0;
 			const int noteControlsH = isGroupMode() ? 0 : NOTE_CONTROLS_H;
@@ -205,8 +212,9 @@ namespace plop::ui {
 				mNoteListPanel.setBounds( 0, rightY + settingsH, panelW, panelH );
 				mNoteControls.setBounds( 0, rightY + settingsH + panelH, panelW, NOTE_CONTROLS_H );
 			}
-			mCircleGrid.setBounds( w - panelW, rightY, panelW, CIRCLE_GRID_H );
-			mCcControls.setBounds( w - panelW, rightY + panelH + groupGridH - CC_CONTROLS_H, panelW, CC_CONTROLS_H );
+			mCircleGrid.setBounds( boundsRightPanel.removeFromTop( CIRCLE_GRID_H ) );
+			boundsRightPanel.removeFromBottom( 30 );
+			mCcControls.setBounds( boundsRightPanel.removeFromBottom( CC_CONTROLS_H ) );
 		}
 
 		void timerCallback() override {
@@ -328,9 +336,8 @@ namespace plop::ui {
 				for ( int i = 0; i < CircleGrid::N; ++i ) {
 					if ( i < groupCount ) {
 						const auto &g = mGroups[ static_cast<size_t>( i ) ];
-						mGroupGrid.setButton( i, ::juce::String( i + 1 ), g.expanded, false, [ this, i ] {
-							mGroupListPanel.expandGroup( i );
-						} );
+						mGroupGrid.setButton(
+						  i, ::juce::String( i + 1 ), g.expanded, false, [ this, i ] { mGroupListPanel.expandGroup( i ); } );
 					} else {
 						mGroupGrid.setButton( i, "", false, true, {} );
 					}
@@ -439,8 +446,8 @@ namespace plop::ui {
 						const auto &notes = mPluginInstanceRef.getNotes();
 						if ( mSelectedNoteIndex >= static_cast<int>( notes.size() ) )
 							return;
-						auto updated     = notes[ static_cast<size_t>( mSelectedNoteIndex ) ];
-						updated.channel  = static_cast<int>( v );
+						auto updated    = notes[ static_cast<size_t>( mSelectedNoteIndex ) ];
+						updated.channel = static_cast<int>( v );
 						mPluginInstanceRef.updateNote( mSelectedNoteIndex, updated );
 					},
 			  } ),
@@ -644,6 +651,12 @@ namespace plop::ui {
 		} );
 
 		setSize( 1000, 600 );
+		// In your MainWindow constructor
+		setResizeLimits( 700,    // min width
+		                 450,    // min height
+		                 2400,   // max width
+		                 2400 ); // max height
+
 		setResizable( true, true );
 		startTimerHz( 30 );
 	}

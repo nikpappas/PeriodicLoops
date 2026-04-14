@@ -9,7 +9,7 @@ juce_add_plugin(
     PLUGIN_CODE PLOP # A unique four-character plugin id with at least one upper-case character
     FORMATS VST3 AU Standalone
     PRODUCT_NAME "Periodic Loops"
-    COMPANY_NAME "NPSCSMPC"
+    COMPANY_NAME "NP"
     BUNDLE_ID "com.nikpappas"
 
     HARDENED_RUNTIME_ENABLED TRUE
